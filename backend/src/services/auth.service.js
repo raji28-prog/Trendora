@@ -16,9 +16,10 @@ export class AuthService {
       throw error;
     }
 
-    const [firstName, ...lastNameParts] = name.trim().split(' ');
-    const lastName = lastNameParts.join(' ') || null;
     const passwordHash = await bcrypt.hash(password, 10);
+    const nameParts = (name || '').trim().split(/\s+/);
+    const firstName = nameParts[0] || 'User';
+    const lastName = nameParts.slice(1).join(' ') || null;
     
     const user = await UserRepository.create({
       email,

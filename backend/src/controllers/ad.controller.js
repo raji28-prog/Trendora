@@ -11,7 +11,7 @@ export const getAll = async (req, res, next) => {
 
 export const create = async (req, res, next) => {
   try {
-    const { title, budget, startDate, endDate, status, businessId } = req.body;
+    const { title, description, imageUrl, budget, startDate, endDate, status, businessId } = req.body;
     let targetBizId = businessId;
     if (!targetBizId) {
       const firstBiz = await prisma.business.findFirst();
@@ -34,6 +34,8 @@ export const create = async (req, res, next) => {
     const item = await prisma.ad.create({
       data: {
         title,
+        description,
+        imageUrl,
         budget: parseFloat(budget),
         startDate: new Date(startDate),
         endDate: new Date(endDate),

@@ -7,12 +7,13 @@ import Modal from '../components/UI/Modal.jsx';
 import EmptyState from '../components/UI/EmptyState.jsx';
 import { addToast } from '../store/uiSlice.js';
 import { useDispatch } from 'react-redux';
-import { Plus, Search, Megaphone, DollarSign, Calendar, Sliders } from 'lucide-react';
+import { Plus, Search, Megaphone, DollarSign, Calendar, ShieldAlert } from 'lucide-react';
 import api from '../services/api.js';
 
 export const Ads = () => {
   const dispatch = useDispatch();
   const [ads, setAds] = useState([]);
+  const [businesses, setBusinesses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,6 +24,7 @@ export const Ads = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [status, setStatus] = useState('PENDING');
+  const [businessId, setBusinessId] = useState('');
 
   const fetchAds = async () => {
     setLoading(true);
@@ -31,7 +33,6 @@ export const Ads = () => {
       setAds(response.data.data || []);
     } catch (err) {
       if (!err.response) {
-        // Offline mock
         const local = localStorage.getItem('demo_ads');
         if (local) {
           setAds(JSON.parse(local));
@@ -51,8 +52,27 @@ export const Ads = () => {
     }
   };
 
+  const fetchBusinesses = async () => {
+    try {
+      const response = await api.get('/api/businesses');
+      const data = response.data.data || [];
+      setBusinesses(data);
+      if (data.length > 0) {
+        setBusinessId(data[0].id);
+      }
+    } catch (err) {
+      const local = localStorage.getItem('demo_businesses');
+      if (local) {
+        const parsed = JSON.parse(local);
+        setBusinesses(parsed);
+        if (parsed.length > 0) setBusinessId(parsed[0].id);
+      }
+    }
+  };
+
   useEffect(() => {
     fetchAds();
+    fetchBusinesses();
   }, []);
 
   const handleCreate = async (e) => {
@@ -62,23 +82,37 @@ export const Ads = () => {
       return;
     }
 
-    const payload = { title, budget: parseFloat(budget), startDate, endDate, status };
+    if (!businessId) {
+      dispatch(addToast({ type: 'warning', message: 'Please select a business profile first' }));
+      return;
+    }
+
+    const payload = { title, budget: parseFloat(budget), startDate, endDate, status, businessId };
 
     try {
       await api.post('/api/ads', payload);
       dispatch(addToast({ type: 'success', message: 'Ad created successfully!' }));
       setIsCreateOpen(false);
+      setTitle('');
+      setBudget('');
+      setStartDate('');
+      setEndDate('');
       fetchAds();
     } catch (err) {
       if (!err.response) {
-        const newAd = { id: `ad-${Date.now()}`, title, budget: parseFloat(budget), startDate, endDate, status };
+        const newAd = { id: `ad-${Date.now()}`, title, budget: parseFloat(budget), startDate, endDate, status, businessId };
         const updated = [newAd, ...ads];
         setAds(updated);
         localStorage.setItem('demo_ads', JSON.stringify(updated));
         dispatch(addToast({ type: 'success', message: 'Demo Mode: Ad created successfully!' }));
         setIsCreateOpen(false);
+        setTitle('');
+        setBudget('');
+        setStartDate('');
+        setEndDate('');
       } else {
-        dispatch(addToast({ type: 'error', message: 'Failed to create ad' }));
+        const msg = err.response?.data?.error?.message || 'Failed to create ad';
+        dispatch(addToast({ type: 'error', message: msg }));
       }
     }
   };
@@ -145,6 +179,28 @@ export const Ads = () => {
 
       <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Create Promotion Ad">
         <form onSubmit={handleCreate} className="flex flex-col gap-4">
+          
+          {businesses.length === 0 ? (
+            <div className="p-3.5 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-xl flex items-center gap-2.5">
+              <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>Please add a business profile first before launching advertisements.</span>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-textSecondary">Target Business Profile *</label>
+              <select
+                value={businessId}
+                onChange={(e) => setBusinessId(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-surface text-textPrimary focus:outline-none focus:border-primary"
+                required
+              >
+                {businesses.map((b) => (
+                  <option key={b.id} value={b.id}>{b.name} ({b.category})</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <Input label="Ad Title *" placeholder="e.g. 20% Off Weekend Special" value={title} onChange={(e) => setTitle(e.target.value)} required />
           <Input label="Budget ($) *" type="number" placeholder="100.00" value={budget} onChange={(e) => setBudget(e.target.value)} required />
           <Input label="Start Date *" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
@@ -152,7 +208,7 @@ export const Ads = () => {
 
           <div className="flex justify-end gap-3 mt-4 border-t border-border pt-4">
             <Button type="button" variant="secondary" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="primary">Launch Ad</Button>
+            <Button type="submit" variant="primary" disabled={businesses.length === 0}>Launch Ad</Button>
           </div>
         </form>
       </Modal>
