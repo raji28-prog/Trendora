@@ -7,7 +7,7 @@ export const Card = ({
 }) => {
   return (
     <div
-      className={`rounded-xl border border-border bg-surface shadow-premium hover:shadow-premium-hover transition-all duration-300 ${className}`}
+      className={`rounded-2xl border border-border bg-surface shadow-premium hover:shadow-premium-hover transition-all duration-300 ${className}`}
       {...props}
     >
       {children}
@@ -40,7 +40,7 @@ export const CardContent = ({ children, className = '', ...props }) => (
 );
 
 export const CardFooter = ({ children, className = '', ...props }) => (
-  <div className={`p-6 border-t border-border bg-background/50 rounded-b-xl flex items-center justify-end gap-3 ${className}`} {...props}>
+  <div className={`p-6 border-t border-border bg-background/50 rounded-b-2xl flex items-center justify-end gap-3 ${className}`} {...props}>
     {children}
   </div>
 );
@@ -52,3 +52,4 @@ Card.Content = CardContent;
 Card.Footer = CardFooter;
 
 export default Card;
+

@@ -9,8 +9,10 @@ export default {
     extend: {
       colors: {
         background: "var(--background)",
+        sectionBackground: "var(--section-background)",
         surface: "var(--surface)",
         primary: "var(--primary)",
+        primaryHover: "var(--primary-hover)",
         secondary: "var(--secondary)",
         accent: "var(--accent)",
         success: "var(--success)",

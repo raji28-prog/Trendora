@@ -38,9 +38,9 @@ export const Profile = () => {
         </Card.Header>
         <Card.Content>
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
-            <div className="flex items-center gap-4 py-2 border-b border-border mb-2">
+            <div className="flex items-center gap-4 py-3 border-b border-border mb-4">
               <Avatar name={user.name} size="lg" />
-              <div className="flex flex-col">
+              <div className="flex flex-col gap-0.5">
                 <span className="text-sm font-semibold text-textPrimary">{user.name}</span>
                 <span className="text-xs text-textSecondary">{user.role}</span>
               </div>

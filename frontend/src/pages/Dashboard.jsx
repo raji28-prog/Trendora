@@ -54,16 +54,16 @@ export const Dashboard = () => {
           return (
             <Card key={idx}>
               <Card.Content className="flex items-center justify-between">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-textSecondary font-semibold uppercase tracking-wider">{m.label}</span>
-                  <span className="text-2xl font-bold text-textPrimary">{m.value}</span>
-                  <div className="flex items-center gap-1.5 mt-1">
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[10px] text-textSecondary font-bold uppercase tracking-wider">{m.label}</span>
+                  <span className="text-3xl font-extrabold tracking-tight text-textPrimary">{m.value}</span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
                     <Badge variant={m.type === 'success' ? 'success' : 'primary'}>{m.change}</Badge>
-                    <span className="text-[10px] text-textSecondary">vs last month</span>
+                    <span className="text-[10px] text-textSecondary font-medium">vs last month</span>
                   </div>
                 </div>
-                <div className="p-3 bg-background border border-border rounded-lg text-textSecondary">
-                  <Icon className="w-5 h-5 text-primary" />
+                <div className="p-3 bg-sectionBackground border border-border rounded-xl text-textSecondary">
+                  <Icon className="w-5 h-5 text-primary animate-pulse" style={{ animationDuration: '3s' }} />
                 </div>
               </Card.Content>
             </Card>
@@ -85,20 +85,20 @@ export const Dashboard = () => {
                 <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorClicks" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor="#4F46E5" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#6D5EF8" stopOpacity={0.15}/>
+                      <stop offset="95%" stopColor="#6D5EF8" stopOpacity={0}/>
                     </linearGradient>
                     <linearGradient id="colorConversions" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor="#06B6D4" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.15}/>
+                      <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="name" stroke="var(--text-secondary)" />
-                  <YAxis stroke="var(--text-secondary)" />
-                  <ChartTooltip contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
-                  <Area type="monotone" dataKey="clicks" stroke="#4F46E5" fillOpacity={1} fill="url(#colorClicks)" strokeWidth={2} />
-                  <Area type="monotone" dataKey="conversions" stroke="#06B6D4" fillOpacity={1} fill="url(#colorConversions)" strokeWidth={2} />
+                  <XAxis dataKey="name" stroke="var(--text-secondary)" tickLine={false} />
+                  <YAxis stroke="var(--text-secondary)" tickLine={false} />
+                  <ChartTooltip contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '12px', color: 'var(--text-primary)' }} />
+                  <Area type="monotone" dataKey="clicks" stroke="#6D5EF8" fillOpacity={1} fill="url(#colorClicks)" strokeWidth={2} />
+                  <Area type="monotone" dataKey="conversions" stroke="#8B5CF6" fillOpacity={1} fill="url(#colorConversions)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -113,9 +113,9 @@ export const Dashboard = () => {
             </div>
             <ArrowUpRight className="w-4 h-4 text-textSecondary" />
           </Card.Header>
-          <Card.Content className="flex flex-col gap-4">
+          <Card.Content className="flex flex-col gap-3">
             {recentCampaigns.map((c, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 bg-background/50 border border-border rounded-lg">
+              <div key={idx} className="flex items-center justify-between p-3.5 bg-sectionBackground/50 border border-border rounded-xl hover:bg-sectionBackground/80 transition-colors duration-150">
                 <div className="flex flex-col gap-0.5">
                   <span className="text-xs font-semibold text-textPrimary">{c.name}</span>
                   <span className="text-[10px] text-textSecondary">Spent: {c.spent} &bull; CTR: {c.ctr}</span>

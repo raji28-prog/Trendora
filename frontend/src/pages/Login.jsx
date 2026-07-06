@@ -39,7 +39,7 @@ export const Login = () => {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1.5 text-center lg:text-left">
+      <div className="flex flex-col gap-1.5 text-center">
         <h2 className="text-2xl font-bold tracking-tight text-textPrimary">Sign In</h2>
         <p className="text-xs text-textSecondary">Enter your credentials to access your dashboard</p>
       </div>

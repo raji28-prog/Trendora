@@ -51,10 +51,10 @@ export const DashboardLayout = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-background text-textPrimary">
+    <div className="min-h-screen flex bg-sectionBackground text-textPrimary">
       <motion.aside
         animate={{ width: sidebarCollapsed ? 72 : 260 }}
-        transition={{ type: 'spring', damping: 20, stiffness: 200 }}
+        transition={{ duration: 0.2, ease: 'easeInOut' }}
         className="hidden md:flex flex-col border-r border-border bg-surface select-none shrink-0"
       >
         <div className="h-16 flex items-center px-5 border-b border-border gap-3 overflow-hidden">
@@ -62,7 +62,7 @@ export const DashboardLayout = () => {
             <span className="text-white font-extrabold text-sm">T</span>
           </div>
           {!sidebarCollapsed && (
-            <span className="font-bold tracking-tight text-base whitespace-nowrap">Trendora</span>
+            <span className="font-bold tracking-tight text-base whitespace-nowrap bg-clip-text text-textPrimary">Trendora</span>
           )}
         </div>
 
@@ -70,7 +70,7 @@ export const DashboardLayout = () => {
           {menuGroups.map((group, gIdx) => (
             <div key={gIdx} className="flex flex-col gap-1.5">
               {!sidebarCollapsed && (
-                <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider px-2">
+                <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider px-3 mb-1">
                   {group.title}
                 </span>
               )}
@@ -88,18 +88,21 @@ export const DashboardLayout = () => {
                         dispatch(addToast({ type: 'info', message: `${item.label} module is planned for a future release.` }));
                       }
                     }}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group ${
+                    className={`relative flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all group ${
                       isActive
-                        ? 'bg-primary/10 text-primary'
-                        : 'text-textSecondary hover:bg-background hover:text-textPrimary'
+                        ? 'bg-primary/5 text-primary'
+                        : 'text-textSecondary hover:bg-sectionBackground hover:text-textPrimary'
                     } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
+                    {isActive && (
+                      <div className="absolute left-[-12px] top-1/2 -translate-y-1/2 w-1.5 h-6 bg-primary rounded-r-full" />
+                    )}
                     <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-primary' : 'text-textSecondary group-hover:text-textPrimary'}`} />
                     {!sidebarCollapsed && (
                       <span className="whitespace-nowrap flex-1">{item.label}</span>
                     )}
                     {!sidebarCollapsed && item.disabled && (
-                      <span className="text-[9px] bg-background border border-border px-1.5 py-0.5 rounded text-textSecondary select-none uppercase">
+                      <span className="text-[9px] bg-sectionBackground border border-border px-1.5 py-0.5 rounded text-textSecondary select-none uppercase font-semibold">
                         Soon
                       </span>
                     )}
@@ -112,21 +115,21 @@ export const DashboardLayout = () => {
       </motion.aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 border-b border-border bg-surface/80 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between px-6">
+        <header className="h-16 border-b border-border bg-surface/85 backdrop-blur sticky top-0 z-30 flex items-center justify-between px-6">
           <div className="flex items-center gap-4">
             <button
               type="button"
               onClick={() => dispatch(toggleSidebar())}
-              className="p-1.5 hover:bg-background rounded-lg border border-border text-textSecondary md:block hidden"
+              className="p-1.5 hover:bg-sectionBackground rounded-lg border border-border text-textSecondary md:block hidden transition-colors duration-150"
             >
               <Menu className="w-5 h-5" />
             </button>
             <div className="relative md:block hidden w-64">
-              <Search className="w-4 h-4 text-textSecondary absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-textSecondary absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search resources..."
-                className="w-full pl-9 pr-4 py-1.5 text-xs bg-background border border-border rounded-lg placeholder-textSecondary/50 text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="w-full pl-9 pr-4 py-1.5 text-xs bg-sectionBackground border border-border rounded-lg placeholder-textSecondary/50 text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-150"
               />
             </div>
           </div>
@@ -135,7 +138,7 @@ export const DashboardLayout = () => {
             <Dropdown
               align="right"
               trigger={
-                <button type="button" className="p-2 hover:bg-background rounded-lg border border-border text-textSecondary flex items-center justify-center">
+                <button type="button" className="p-2 hover:bg-sectionBackground rounded-lg border border-border text-textSecondary flex items-center justify-center transition-colors duration-150" aria-label="Theme selection">
                   {currentTheme === 'light' && <Sun className="w-4.5 h-4.5" />}
                   {currentTheme === 'dark' && <Moon className="w-4.5 h-4.5" />}
                   {currentTheme === 'system' && <Monitor className="w-4.5 h-4.5" />}
@@ -156,7 +159,8 @@ export const DashboardLayout = () => {
             <button
               type="button"
               onClick={() => dispatch(addToast({ type: 'info', message: 'No new notifications.' }))}
-              className="p-2 hover:bg-background rounded-lg border border-border text-textSecondary relative"
+              className="p-2 hover:bg-sectionBackground rounded-lg border border-border text-textSecondary relative transition-colors duration-150"
+              aria-label="Notifications"
             >
               <Bell className="w-4.5 h-4.5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-danger animate-pulse" />
@@ -165,13 +169,13 @@ export const DashboardLayout = () => {
             <Dropdown
               align="right"
               trigger={
-                <div className="flex items-center gap-2 pl-2 border-l border-border select-none cursor-pointer">
+                <div className="flex items-center gap-2 pl-2 border-l border-border select-none cursor-pointer group">
                   <Avatar name={user.name} size="sm" />
                   <div className="text-left md:block hidden">
-                    <p className="text-xs font-semibold text-textPrimary leading-none">{user.name}</p>
+                    <p className="text-xs font-semibold text-textPrimary leading-none group-hover:text-primary transition-colors duration-150">{user.name}</p>
                     <p className="text-[10px] text-textSecondary leading-none mt-1">{user.role}</p>
                   </div>
-                  <ChevronDown className="w-3.5 h-3.5 text-textSecondary" />
+                  <ChevronDown className="w-3.5 h-3.5 text-textSecondary group-hover:text-textPrimary transition-colors duration-150" />
                 </div>
               }
             >
@@ -189,11 +193,11 @@ export const DashboardLayout = () => {
           </div>
         </header>
 
-        <main className="flex-1 p-6 overflow-y-auto bg-background/50">
+        <main className="flex-1 p-6 overflow-y-auto bg-sectionBackground">
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.2 }}
             className="h-full flex flex-col gap-6"
           >
             <Outlet />
@@ -203,8 +207,8 @@ export const DashboardLayout = () => {
         <footer className="h-14 border-t border-border bg-surface flex items-center justify-between px-6 text-xs text-textSecondary">
           <span>&copy; {new Date().getFullYear()} Trendora Marketing. All rights reserved.</span>
           <div className="flex items-center gap-4">
-            <a href="#" className="hover:text-textPrimary transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-textPrimary transition-colors">Terms of Service</a>
+            <a href="#" className="hover:text-textPrimary transition-colors duration-150">Privacy Policy</a>
+            <a href="#" className="hover:text-textPrimary transition-colors duration-150">Terms of Service</a>
           </div>
         </footer>
       </div>
