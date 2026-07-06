@@ -82,6 +82,15 @@ const ResetPassword = React.lazy(() => import('../pages/ResetPassword.jsx'));
 const Profile = React.lazy(() => import('../pages/Profile.jsx'));
 const Settings = React.lazy(() => import('../pages/Settings.jsx'));
 const NotFound = React.lazy(() => import('../pages/NotFound.jsx'));
+// Phase 4 & 5 Pages
+const Services = React.lazy(() => import('../pages/Services.jsx'));
+const BusinessProfile = React.lazy(() => import('../pages/BusinessProfile.jsx'));
+const Scheduler = React.lazy(() => import('../pages/Scheduler.jsx'));
+const Gbp = React.lazy(() => import('../pages/Gbp.jsx'));
+const Seo = React.lazy(() => import('../pages/Seo.jsx'));
+const AiGenerator = React.lazy(() => import('../pages/AiGenerator.jsx'));
+const Team = React.lazy(() => import('../pages/Team.jsx'));
+const Billing = React.lazy(() => import('../pages/Billing.jsx'));
 
 const Suspended = ({ children }) => (
   <Suspense
@@ -143,6 +152,40 @@ export const router = createBrowserRouter([
           {
             path: '/settings',
             element: <Suspended><Settings /></Suspended>,
+          },
+          // Phase 4 — Services
+          {
+            path: '/services',
+            element: <Suspended><Services /></Suspended>,
+          },
+          // Phase 5 — Advanced Modules
+          {
+            path: '/business-profile',
+            element: <Suspended><BusinessProfile /></Suspended>,
+          },
+          {
+            path: '/scheduler',
+            element: <Suspended><Scheduler /></Suspended>,
+          },
+          {
+            path: '/gbp',
+            element: <Suspended><Gbp /></Suspended>,
+          },
+          {
+            path: '/seo',
+            element: <Suspended><Seo /></Suspended>,
+          },
+          {
+            path: '/ai-generator',
+            element: <Suspended><AiGenerator /></Suspended>,
+          },
+          {
+            path: '/team',
+            element: <Suspended><Team /></Suspended>,
+          },
+          {
+            path: '/billing',
+            element: <Suspended><Billing /></Suspended>,
           },
         ],
       },

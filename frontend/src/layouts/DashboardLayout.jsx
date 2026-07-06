@@ -8,7 +8,8 @@ import { logout } from '../store/authSlice.js';
 import {
   Menu, Sun, Moon, Monitor, LogOut, User, Settings as SettingsIcon,
   Bell, Search, ChevronDown, LayoutDashboard, Target, BarChart3,
-  Building, Megaphone, Palette, Users, Star
+  Building, Megaphone, Palette, Users, Star, Wrench, Calendar,
+  MapPin, TrendingUp, Bot, CreditCard, UserCog, Globe2
 } from 'lucide-react';
 import Avatar from '../components/UI/Avatar.jsx';
 import Dropdown from '../components/UI/Dropdown.jsx';
@@ -24,21 +25,44 @@ export const DashboardLayout = () => {
 
   const menuGroups = [
     {
-      title: 'Marketing',
+      title: 'Overview',
       items: [
         { label: 'Dashboard', path: '/', icon: LayoutDashboard },
-        { label: 'Campaigns', path: '/campaigns', icon: Target },
         { label: 'Analytics', path: '/analytics', icon: BarChart3 },
       ],
     },
     {
-      title: 'Modules',
+      title: 'Business',
       items: [
         { label: 'Businesses', path: '/businesses', icon: Building },
+        { label: 'Business Profile', path: '/business-profile', icon: UserCog },
+        { label: 'Services', path: '/services', icon: Wrench },
+      ],
+    },
+    {
+      title: 'Marketing',
+      items: [
+        { label: 'Campaigns', path: '/campaigns', icon: Target },
         { label: 'Ads Manager', path: '/ads', icon: Megaphone },
         { label: 'Poster Design', path: '/posters', icon: Palette },
+        { label: 'Social Scheduler', path: '/scheduler', icon: Calendar },
+        { label: 'AI Generator', path: '/ai-generator', icon: Bot },
+      ],
+    },
+    {
+      title: 'Growth',
+      items: [
+        { label: 'Google Business', path: '/gbp', icon: Globe2 },
+        { label: 'SEO Dashboard', path: '/seo', icon: TrendingUp },
         { label: 'Customer Leads', path: '/leads', icon: Users },
         { label: 'Reviews & Ratings', path: '/reviews', icon: Star },
+      ],
+    },
+    {
+      title: 'Account',
+      items: [
+        { label: 'Team', path: '/team', icon: UserCog },
+        { label: 'Billing & Plans', path: '/billing', icon: CreditCard },
       ],
     },
   ];

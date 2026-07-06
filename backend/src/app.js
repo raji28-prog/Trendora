@@ -13,6 +13,12 @@ import campaignRoutes from './routes/campaign.routes.js';
 import leadRoutes from './routes/lead.routes.js';
 import posterRoutes from './routes/poster.routes.js';
 import reviewRoutes from './routes/review.routes.js';
+import serviceRoutes from './routes/service.routes.js';
+import schedulerRoutes from './routes/scheduler.routes.js';
+import teamRoutes from './routes/team.routes.js';
+import billingRoutes from './routes/billing.routes.js';
+import aiRoutes from './routes/ai.routes.js';
+import gbpRoutes from './routes/gbp.routes.js';
 
 const app = express();
 
@@ -57,6 +63,25 @@ app.use('/api/poster', posterRoutes);
 
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/review', reviewRoutes);
+
+// Phase 4 & 5 Routes
+app.use('/api/services', serviceRoutes);
+app.use('/api/service', serviceRoutes);
+app.use('/api/services/categories', serviceRoutes);
+app.use('/api/services/packages', serviceRoutes);
+
+app.use('/api/scheduler', schedulerRoutes);
+app.use('/api/posts', schedulerRoutes);
+
+app.use('/api/team', teamRoutes);
+app.use('/api/team-members', teamRoutes);
+
+app.use('/api/billing', billingRoutes);
+app.use('/api/subscriptions', billingRoutes);
+
+app.use('/api/ai', aiRoutes);
+
+app.use('/api/gbp', gbpRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

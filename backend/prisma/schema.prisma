@@ -108,6 +108,9 @@ model Business {
   leads        Lead[]
   posters      Poster[]
   reviews      Review[]
+  posts        Post[]
+  teamMembers  TeamMember[]
+  subscriptions Subscription[]
 
   @@map("businesses")
 }
@@ -190,4 +193,83 @@ model Review {
   updatedAt     DateTime @updatedAt
 
   @@map("reviews")
+}
+
+model ServiceCategory {
+  id          String    @id @default(uuid()) @map("_id")
+  name        String
+  description String?
+  services    Service[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("service_categories")
+}
+
+model Service {
+  id          String          @id @default(uuid()) @map("_id")
+  name        String
+  description String?
+  price       Float
+  duration    Int             // Duration in minutes
+  categoryId  String
+  category    ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  packageId   String?
+  package     Package?        @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@map("services")
+}
+
+model Package {
+  id          String    @id @default(uuid()) @map("_id")
+  name        String    // e.g. Basic, Pro, Premium
+  price       Float     // Price in USD per month
+  description String?
+  services    Service[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("packages")
+}
+
+model Post {
+  id           String   @id @default(uuid()) @map("_id")
+  content      String
+  platform     String   // e.g. FACEBOOK, INSTAGRAM, TWITTER
+  scheduledFor DateTime
+  status       String   @default("SCHEDULED") // e.g. SCHEDULED, PUBLISHED, FAILED
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("posts")
+}
+
+model TeamMember {
+  id         String   @id @default(uuid()) @map("_id")
+  name       String
+  email      String
+  role       String   @default("EDITOR") // e.g. ADMIN, MANAGER, EDITOR
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("team_members")
+}
+
+model Subscription {
+  id         String   @id @default(uuid()) @map("_id")
+  plan       String   @default("FREE") // FREE, PRO, ENTERPRISE
+  status     String   @default("ACTIVE") // ACTIVE, CANCELED, PAST_DUE
+  expiresAt  DateTime
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("subscriptions")
 }
