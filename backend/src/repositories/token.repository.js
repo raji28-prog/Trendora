@@ -22,6 +22,10 @@ export class TokenRepository {
     return prisma.refreshToken.delete({ where: { token } }).catch(() => null);
   }
 
+  static async deleteByUserId(userId) {
+    return prisma.refreshToken.deleteMany({ where: { userId } });
+  }
+
   static async deleteExpired() {
     return prisma.refreshToken.deleteMany({
       where: {

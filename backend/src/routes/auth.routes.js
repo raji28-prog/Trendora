@@ -4,6 +4,11 @@ import {
   registerSchema,
   loginSchema,
   refreshTokenSchema,
+  resetPasswordRequestSchema,
+  resetPasswordConfirmSchema,
+  changePasswordSchema,
+  updateProfileSchema,
+  resendVerificationSchema,
 } from '../validations/auth.schema.js';
 
 export async function authRoutes(fastify, options) {
@@ -30,7 +35,18 @@ export async function authRoutes(fastify, options) {
   fastify.post('/login', { preValidation: [validate(loginSchema)] }, controller.login);
   fastify.post('/refresh', { preValidation: [validate(refreshTokenSchema)] }, controller.refresh);
   fastify.post('/logout', controller.logout);
+  fastify.post('/logout-all', { preHandler: [authenticate] }, controller.logoutAll);
   fastify.get('/me', { preHandler: [authenticate] }, controller.me);
+  
+  fastify.post('/forgot-password', { preValidation: [validate(resetPasswordRequestSchema)] }, controller.forgotPassword);
+  fastify.post('/reset-password', { preValidation: [validate(resetPasswordConfirmSchema)] }, controller.resetPassword);
+  fastify.post('/change-password', { preHandler: [authenticate], preValidation: [validate(changePasswordSchema)] }, controller.changePassword);
+  fastify.post('/resend-verification', { preValidation: [validate(resendVerificationSchema)] }, controller.resendVerification);
+  fastify.get('/verify-email', controller.verifyEmail);
+  fastify.put('/profile', { preHandler: [authenticate], preValidation: [validate(updateProfileSchema)] }, controller.updateProfile);
+  
+  // Custom static uploads serving
+  fastify.get('/uploads/:filename', controller.serveUpload);
 }
 
 export default authRoutes;
