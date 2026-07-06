@@ -1,12 +1,42 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { Navigate, Outlet, createBrowserRouter } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import Spinner from '../components/UI/Spinner.jsx';
+import api from '../services/api.js';
+import { getMeStart, getMeSuccess, getMeFailure } from '../store/authSlice.js';
 
 export const ProtectedRoute = ({ allowedRoles = [] }) => {
+  const dispatch = useDispatch();
   const { isAuthenticated, user, loading } = useSelector((state) => state.auth);
 
-  if (loading) {
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (isAuthenticated && !user && !loading) {
+        dispatch(getMeStart());
+        try {
+          const response = await api.get('/api/auth/me');
+          dispatch(getMeSuccess({ user: response.data.data.user }));
+        } catch (err) {
+          if (!err.response) {
+            // Simulated local session for demo when server is offline
+            dispatch(getMeSuccess({
+              user: {
+                id: 'demo-user-id',
+                email: 'demo@trendora.com',
+                name: 'Demo Business User',
+                role: 'ADMIN'
+              }
+            }));
+            return;
+          }
+          dispatch(getMeFailure(err.response?.data?.error?.message || 'Session expired'));
+        }
+      }
+    };
+    fetchUser();
+  }, [isAuthenticated, user, loading, dispatch]);
+
+  if (loading || (isAuthenticated && !user)) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-background">
         <Spinner size="lg" />
@@ -35,9 +65,16 @@ export const PublicRoute = () => {
   return <Outlet />;
 };
 
-const DashboardLayout = React.lazy(() => import('../layouts/DashboardLayout.jsx'));
-const AuthLayout = React.lazy(() => import('../layouts/AuthLayout.jsx'));
+import DashboardLayout from '../layouts/DashboardLayout.jsx';
+import AuthLayout from '../layouts/AuthLayout.jsx';
 const Dashboard = React.lazy(() => import('../pages/Dashboard.jsx'));
+const Businesses = React.lazy(() => import('../pages/Businesses.jsx'));
+const Ads = React.lazy(() => import('../pages/Ads.jsx'));
+const Posters = React.lazy(() => import('../pages/Posters.jsx'));
+const Campaigns = React.lazy(() => import('../pages/Campaigns.jsx'));
+const Analytics = React.lazy(() => import('../pages/Analytics.jsx'));
+const Leads = React.lazy(() => import('../pages/Leads.jsx'));
+const Reviews = React.lazy(() => import('../pages/Reviews.jsx'));
 const Login = React.lazy(() => import('../pages/Login.jsx'));
 const Register = React.lazy(() => import('../pages/Register.jsx'));
 const ForgotPassword = React.lazy(() => import('../pages/ForgotPassword.jsx'));
@@ -70,6 +107,34 @@ export const router = createBrowserRouter([
           {
             path: '/',
             element: <Suspended><Dashboard /></Suspended>,
+          },
+          {
+            path: '/businesses',
+            element: <Suspended><Businesses /></Suspended>,
+          },
+          {
+            path: '/ads',
+            element: <Suspended><Ads /></Suspended>,
+          },
+          {
+            path: '/posters',
+            element: <Suspended><Posters /></Suspended>,
+          },
+          {
+            path: '/campaigns',
+            element: <Suspended><Campaigns /></Suspended>,
+          },
+          {
+            path: '/analytics',
+            element: <Suspended><Analytics /></Suspended>,
+          },
+          {
+            path: '/leads',
+            element: <Suspended><Leads /></Suspended>,
+          },
+          {
+            path: '/reviews',
+            element: <Suspended><Reviews /></Suspended>,
           },
           {
             path: '/profile',

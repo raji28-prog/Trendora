@@ -1,16 +1,13 @@
-import buildApp from './app.js';
+import app from './app.js';
 import env from './config/env.js';
 
-const server = buildApp();
+const PORT = env.PORT || 5000;
 
-const start = async () => {
-  try {
-    await server.listen({ port: env.PORT, host: '0.0.0.0' });
-    server.log.info(`Server listening on port ${env.PORT}`);
-  } catch (err) {
-    server.log.error(err);
-    process.exit(1);
-  }
-};
+const server = app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
 
-start();
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled Rejection:', err);
+  server.close(() => process.exit(1));
+});

@@ -1,5 +1,5 @@
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -7,32 +7,125 @@ generator client {
   provider = "prisma-client-js"
 }
 
-enum Role {
-  ADMIN
-  USER
-  BUSINESS_OWNER
-}
-
 model User {
-  id            String         @id @default(uuid())
-  email         String         @unique
-  name          String
-  passwordHash  String
-  role          Role           @default(USER)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  refreshTokens RefreshToken[]
+  id           String     @id @default(uuid())
+  email        String     @unique
+  name         String
+  passwordHash String
+  role         String     @default("USER")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  businesses   Business[]
+  reviews      Review[]
 
   @@map("users")
 }
 
-model RefreshToken {
-  id        String   @id @default(uuid())
-  token     String   @unique
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+model Business {
+  id           String     @id @default(uuid())
+  name         String
+  category     String
+  address      String
+  phone        String
+  website      String?
+  images       Json       // Store array of file image URLs
+  status       String     @default("ACTIVE") // ACTIVE, INACTIVE
+  userId       String?
+  user         User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  ads          Ad[]
+  campaigns    Campaign[]
+  leads        Lead[]
+  posters      Poster[]
+  reviews      Review[]
 
-  @@map("refresh_tokens")
+  @@map("businesses")
+}
+
+model Ad {
+  id          String   @id @default(uuid())
+  title       String
+  description String?  @db.Text
+  imageUrl    String?
+  budget      Float
+  startDate   DateTime
+  endDate     DateTime
+  status      String   @default("PENDING") // PENDING, ACTIVE, COMPLETED, PAUSED
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([businessId])
+  @@map("ads")
+}
+
+model Campaign {
+  id         String   @id @default(uuid())
+  name       String
+  type       String   // EMAIL, SOCIAL, SMS
+  startDate  DateTime
+  endDate    DateTime
+  status     String   @default("DRAFT") // DRAFT, RUNNING, COMPLETED
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  leads      Lead[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([businessId])
+  @@map("campaigns")
+}
+
+model Lead {
+  id         String    @id @default(uuid())
+  firstName  String
+  lastName   String?
+  email      String
+  phone      String?
+  status     String    @default("NEW") // NEW, CONTACTED, QUALIFIED, LOST, CONVERTED
+  source     String?
+  businessId String
+  business   Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([businessId])
+  @@index([campaignId])
+  @@map("leads")
+}
+
+model Poster {
+  id         String   @id @default(uuid())
+  title      String
+  imageUrl   String
+  format     String?
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([businessId])
+  @@map("posters")
+}
+
+model Review {
+  id            String   @id @default(uuid())
+  rating        Int
+  comment       String?  @db.Text
+  reviewerName  String
+  reviewerEmail String?
+  businessId    String
+  business      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([businessId])
+  @@index([userId])
+  @@map("reviews")
 }

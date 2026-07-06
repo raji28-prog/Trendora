@@ -8,7 +8,7 @@ import { logout } from '../store/authSlice.js';
 import {
   Menu, Sun, Moon, Monitor, LogOut, User, Settings as SettingsIcon,
   Bell, Search, ChevronDown, LayoutDashboard, Target, BarChart3,
-  Sparkles, Mail
+  Building, Megaphone, Palette, Users, Star
 } from 'lucide-react';
 import Avatar from '../components/UI/Avatar.jsx';
 import Dropdown from '../components/UI/Dropdown.jsx';
@@ -27,15 +27,18 @@ export const DashboardLayout = () => {
       title: 'Marketing',
       items: [
         { label: 'Dashboard', path: '/', icon: LayoutDashboard },
-        { label: 'Campaigns', path: '/campaigns', icon: Target, disabled: true },
-        { label: 'Analytics', path: '/analytics', icon: BarChart3, disabled: true },
+        { label: 'Campaigns', path: '/campaigns', icon: Target },
+        { label: 'Analytics', path: '/analytics', icon: BarChart3 },
       ],
     },
     {
       title: 'Modules',
       items: [
-        { label: 'AI Copywriter', path: '/ai-writer', icon: Sparkles, disabled: true },
-        { label: 'Email Campaigns', path: '/emails', icon: Mail, disabled: true },
+        { label: 'Businesses', path: '/businesses', icon: Building },
+        { label: 'Ads Manager', path: '/ads', icon: Megaphone },
+        { label: 'Poster Design', path: '/posters', icon: Palette },
+        { label: 'Customer Leads', path: '/leads', icon: Users },
+        { label: 'Reviews & Ratings', path: '/reviews', icon: Star },
       ],
     },
   ];

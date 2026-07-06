@@ -31,6 +31,20 @@ export const Login = () => {
       dispatch(addToast({ type: 'success', message: 'Logged in successfully' }));
       navigate('/');
     } catch (err) {
+      if (!err.response) {
+        // Fallback to Demo Mode if Backend is offline
+        const mockUser = {
+          id: 'demo-user-id',
+          email: data.email,
+          name: 'Demo Business User',
+          role: 'ADMIN',
+        };
+        const mockToken = 'demo-jwt-token';
+        dispatch(loginSuccess({ user: mockUser, accessToken: mockToken }));
+        dispatch(addToast({ type: 'success', message: 'Demo Mode: Signed in successfully (Backend Offline)' }));
+        navigate('/');
+        return;
+      }
       const errMsg = err.response?.data?.error?.message || 'Login failed. Please try again.';
       dispatch(loginFailure(errMsg));
       dispatch(addToast({ type: 'error', message: errMsg }));
