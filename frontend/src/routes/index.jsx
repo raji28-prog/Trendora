@@ -1,12 +1,30 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { Navigate, Outlet, createBrowserRouter } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import Spinner from '../components/UI/Spinner.jsx';
+import api from '../services/api.js';
+import { getMeStart, getMeSuccess, getMeFailure } from '../store/authSlice.js';
 
 export const ProtectedRoute = ({ allowedRoles = [] }) => {
+  const dispatch = useDispatch();
   const { isAuthenticated, user, loading } = useSelector((state) => state.auth);
 
-  if (loading) {
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (isAuthenticated && !user && !loading) {
+        dispatch(getMeStart());
+        try {
+          const response = await api.get('/api/auth/me');
+          dispatch(getMeSuccess({ user: response.data.data.user }));
+        } catch (err) {
+          dispatch(getMeFailure(err.response?.data?.error?.message || 'Session expired'));
+        }
+      }
+    };
+    fetchUser();
+  }, [isAuthenticated, user, loading, dispatch]);
+
+  if (loading || (isAuthenticated && !user)) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-background">
         <Spinner size="lg" />

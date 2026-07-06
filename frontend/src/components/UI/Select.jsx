@@ -8,16 +8,18 @@ export const Select = React.forwardRef(({
   placeholder,
   ...props
 }, ref) => {
+  const id = React.useId();
   return (
     <div className="w-full flex flex-col gap-1.5">
       {label && (
-        <label className="text-xs font-semibold text-textSecondary select-none">
+        <label htmlFor={id} className="text-xs font-semibold text-textSecondary select-none">
           {label}
         </label>
       )}
       <select
+        id={id}
         ref={ref}
-        className={`w-full px-3 py-2 text-sm rounded-lg border border-border bg-surface text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 ${
+        className={`w-full px-3 py-2.5 text-sm rounded-lg border border-border bg-surface text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-150 ${
           error ? 'border-danger focus:ring-danger/20 focus:border-danger' : ''
         } ${className}`}
         {...props}

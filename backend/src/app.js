@@ -23,7 +23,7 @@ export function buildApp() {
 
   // Register plugins
   app.register(cors, {
-    origin: true, // Allow dev origins, configure as needed for prod
+    origin: true,
     credentials: true,
   });
 
@@ -31,6 +31,15 @@ export function buildApp() {
 
   app.register(jwt, {
     secret: env.JWT_SECRET,
+  });
+
+  // Security headers equivalent to Helmet
+  app.addHook('onSend', async (request, reply, payload) => {
+    reply.header('X-Content-Type-Options', 'nosniff');
+    reply.header('X-Frame-Options', 'DENY');
+    reply.header('X-XSS-Protection', '1; mode=block');
+    reply.header('Referrer-Policy', 'no-referrer-when-downgrade');
+    return payload;
   });
 
   // Set global error handler

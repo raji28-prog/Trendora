@@ -6,6 +6,7 @@ import { addToast } from '../store/uiSlice.js';
 import Input from '../components/UI/Input.jsx';
 import Button from '../components/UI/Button.jsx';
 import { Lock } from 'lucide-react';
+import api from '../services/api.js';
 
 export const ResetPassword = () => {
   const navigate = useNavigate();
@@ -23,11 +24,12 @@ export const ResetPassword = () => {
     }
     setLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await api.post('/api/auth/reset-password', { token, newPassword: data.password });
       dispatch(addToast({ type: 'success', message: 'Password updated successfully! Please sign in.' }));
       navigate('/login');
     } catch (err) {
-      dispatch(addToast({ type: 'error', message: 'An error occurred. Please try again.' }));
+      const errMsg = err.response?.data?.error?.message || 'An error occurred. Please try again.';
+      dispatch(addToast({ type: 'error', message: errMsg }));
     } finally {
       setLoading(false);
     }
@@ -35,7 +37,7 @@ export const ResetPassword = () => {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1.5 text-center lg:text-left">
+      <div className="flex flex-col gap-1.5 text-center">
         <h2 className="text-2xl font-bold tracking-tight text-textPrimary">Reset Password</h2>
         <p className="text-xs text-textSecondary">Enter your new secure password below</p>
       </div>

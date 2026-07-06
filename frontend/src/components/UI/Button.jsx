@@ -17,12 +17,12 @@ export const Button = React.forwardRef(({
   const baseStyles = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 active:scale-95 disabled:pointer-events-none disabled:opacity-50';
 
   const variants = {
-    primary: 'bg-primary text-white hover:opacity-90 focus:ring-primary',
-    secondary: 'bg-secondary text-white hover:opacity-90 focus:ring-secondary',
-    outline: 'border border-border bg-surface text-textPrimary hover:bg-background focus:ring-primary',
-    ghost: 'text-textPrimary hover:bg-background focus:ring-primary',
-    danger: 'bg-danger text-white hover:opacity-90 focus:ring-danger',
-    success: 'bg-success text-white hover:opacity-90 focus:ring-success',
+    primary: 'bg-primary text-white hover:bg-primaryHover shadow-sm hover:shadow-md focus:ring-primary/30',
+    secondary: 'bg-secondary text-white hover:opacity-95 shadow-sm hover:shadow-md focus:ring-secondary/30',
+    outline: 'border border-border bg-surface text-textPrimary hover:bg-sectionBackground hover:border-textSecondary/30 shadow-sm focus:ring-primary/30',
+    ghost: 'text-textPrimary hover:bg-sectionBackground focus:ring-primary/30',
+    danger: 'bg-danger text-white hover:opacity-95 shadow-sm hover:shadow-md focus:ring-danger/30',
+    success: 'bg-success text-white hover:opacity-95 shadow-sm hover:shadow-md focus:ring-success/30',
   };
 
   const sizes = {

@@ -42,13 +42,13 @@ export const Settings = () => {
                     key={t.value}
                     type="button"
                     onClick={() => handleThemeChange(t.value)}
-                    className={`flex flex-col items-center justify-center gap-3 p-4 rounded-xl border transition-all ${
+                    className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border transition-all duration-150 ${
                       isSelected
-                        ? 'border-primary bg-primary/5 text-primary font-semibold ring-1 ring-primary/20'
-                        : 'border-border bg-surface text-textSecondary hover:border-textSecondary/50 hover:text-textPrimary'
+                        ? 'border-primary bg-primary/5 text-primary font-semibold ring-2 ring-primary/10 shadow-sm'
+                        : 'border-border bg-surface text-textSecondary hover:border-textSecondary/50 hover:text-textPrimary hover:shadow-sm'
                     }`}
                   >
-                    <Icon className="w-6 h-6" />
+                    <Icon className="w-5 h-5" />
                     <span className="text-xs">{t.label}</span>
                   </button>
                 );
@@ -74,8 +74,8 @@ export const Settings = () => {
         <Card.Header>
           <Card.Title>Notifications Preferences</Card.Title>
         </Card.Header>
-        <Card.Content className="flex flex-col gap-4 text-xs text-textSecondary py-8 text-center border-dashed border border-border bg-background/20 rounded-b-xl">
-          <Bell className="w-8 h-8 text-textSecondary mx-auto opacity-40 mb-2" />
+        <Card.Content className="flex flex-col gap-4 text-xs text-textSecondary py-8 text-center border-dashed border border-border bg-sectionBackground/30 rounded-b-2xl">
+          <Bell className="w-7 h-7 text-textSecondary mx-auto opacity-30 mb-1" />
           <span>Notification rules management will be integrated in a later release.</span>
         </Card.Content>
       </Card>
@@ -84,8 +84,8 @@ export const Settings = () => {
         <Card.Header>
           <Card.Title>Localization Settings</Card.Title>
         </Card.Header>
-        <Card.Content className="flex flex-col gap-4 text-xs text-textSecondary py-8 text-center border-dashed border border-border bg-background/20 rounded-b-xl">
-          <Globe className="w-8 h-8 text-textSecondary mx-auto opacity-40 mb-2" />
+        <Card.Content className="flex flex-col gap-4 text-xs text-textSecondary py-8 text-center border-dashed border border-border bg-sectionBackground/30 rounded-b-2xl">
+          <Globe className="w-7 h-7 text-textSecondary mx-auto opacity-30 mb-1" />
           <span>Advanced translation systems and multi-currency configurations placeholder.</span>
         </Card.Content>
       </Card>

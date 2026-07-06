@@ -36,6 +36,37 @@ const authSlice = createSlice({
       state.error = null;
       localStorage.removeItem('accessToken');
     },
+    getMeStart(state) {
+      state.loading = true;
+      state.error = null;
+    },
+    getMeSuccess(state, action) {
+      state.loading = false;
+      state.user = action.payload.user;
+      state.isAuthenticated = true;
+      state.error = null;
+    },
+    getMeFailure(state, action) {
+      state.loading = false;
+      state.error = action.payload;
+      state.isAuthenticated = false;
+      state.user = null;
+      state.accessToken = null;
+      localStorage.removeItem('accessToken');
+    },
+    updateProfileStart(state) {
+      state.loading = true;
+      state.error = null;
+    },
+    updateProfileSuccess(state, action) {
+      state.loading = false;
+      state.user = action.payload.user;
+      state.error = null;
+    },
+    updateProfileFailure(state, action) {
+      state.loading = false;
+      state.error = action.payload;
+    },
     updateUser(state, action) {
       state.user = { ...state.user, ...action.payload };
     },
@@ -52,6 +83,12 @@ export const {
   loginSuccess,
   loginFailure,
   logout,
+  getMeStart,
+  getMeSuccess,
+  getMeFailure,
+  updateProfileStart,
+  updateProfileSuccess,
+  updateProfileFailure,
   updateUser,
   setAccessToken,
 } = authSlice.actions;

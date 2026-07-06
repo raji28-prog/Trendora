@@ -1,6 +1,11 @@
 import bcrypt from 'bcryptjs';
+import fs from 'fs';
+import path from 'path';
 import UserRepository from '../repositories/user.repository.js';
 import TokenRepository from '../repositories/token.repository.js';
+import ResetTokenRepository from '../repositories/resetToken.repository.js';
+import VerifyTokenRepository from '../repositories/verifyToken.repository.js';
+import AuditLogRepository from '../repositories/auditLog.repository.js';
 
 export class AuthService {
   static async register({ email, name, password, role }) {
@@ -11,15 +16,33 @@ export class AuthService {
       throw error;
     }
 
+    const [firstName, ...lastNameParts] = name.trim().split(' ');
+    const lastName = lastNameParts.join(' ') || null;
     const passwordHash = await bcrypt.hash(password, 10);
+    
     const user = await UserRepository.create({
       email,
-      name,
+      firstName,
+      lastName,
       passwordHash,
       role,
     });
 
+    // Create verification token automatically
+    const verifyToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+    await VerifyTokenRepository.create({ token: verifyToken, userId: user.id, expiresAt });
+
+    // Audit log
+    await AuditLogRepository.create({
+      userId: user.id,
+      action: 'USER_REGISTERED',
+      details: 'User successfully created account',
+    });
+
     const { passwordHash: _, ...userWithoutPassword } = user;
+    userWithoutPassword.name = `${user.firstName} ${user.lastName || ''}`.trim();
     return userWithoutPassword;
   }
 
@@ -38,7 +61,15 @@ export class AuthService {
       throw error;
     }
 
+    // Audit log
+    await AuditLogRepository.create({
+      userId: user.id,
+      action: 'USER_LOGGED_IN',
+      details: 'User successfully signed in',
+    });
+
     const { passwordHash: _, ...userWithoutPassword } = user;
+    userWithoutPassword.name = `${user.firstName} ${user.lastName || ''}`.trim();
     return userWithoutPassword;
   }
 
@@ -61,12 +92,175 @@ export class AuthService {
       throw error;
     }
 
-    return tokenDoc.user;
+    const { passwordHash: _, ...userWithoutPassword } = tokenDoc.user;
+    userWithoutPassword.name = `${tokenDoc.user.firstName} ${tokenDoc.user.lastName || ''}`.trim();
+    return userWithoutPassword;
   }
 
   static async revokeRefreshToken(token) {
     return TokenRepository.deleteByToken(token);
   }
+
+  static async revokeAllRefreshTokens(userId) {
+    return TokenRepository.deleteByUserId(userId);
+  }
+
+  static async forgotPassword(email) {
+    const user = await UserRepository.findByEmail(email);
+    if (!user) {
+      return { success: true };
+    }
+    const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1); // 1 hour
+    await ResetTokenRepository.create({ token, userId: user.id, expiresAt });
+    
+    // Audit log
+    await AuditLogRepository.create({
+      userId: user.id,
+      action: 'PASSWORD_RESET_REQUESTED',
+      details: 'Reset password link generated',
+    });
+    return { token };
+  }
+
+  static async resetPassword(token, newPassword) {
+    const resetToken = await ResetTokenRepository.findByToken(token);
+    if (!resetToken) {
+      const error = new Error('Invalid or expired reset token');
+      error.statusCode = 400;
+      throw error;
+    }
+    if (new Date() > resetToken.expiresAt) {
+      await ResetTokenRepository.deleteByToken(token);
+      const error = new Error('Reset token has expired');
+      error.statusCode = 400;
+      throw error;
+    }
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await UserRepository.update(resetToken.userId, { passwordHash });
+    await ResetTokenRepository.deleteByToken(token);
+    
+    // Audit log
+    await AuditLogRepository.create({
+      userId: resetToken.userId,
+      action: 'PASSWORD_RESET_COMPLETED',
+      details: 'Password was reset successfully using token',
+    });
+    return { success: true };
+  }
+
+  static async changePassword(userId, currentPassword, newPassword) {
+    const user = await UserRepository.findById(userId);
+    if (!user) {
+      const error = new Error('User not found');
+      error.statusCode = 404;
+      throw error;
+    }
+    const isValidPassword = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isValidPassword) {
+      const error = new Error('Invalid current password');
+      error.statusCode = 400;
+      throw error;
+    }
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await UserRepository.update(userId, { passwordHash });
+    
+    // Audit log
+    await AuditLogRepository.create({
+      userId,
+      action: 'PASSWORD_CHANGED',
+      details: 'User updated password from profile settings',
+    });
+    return { success: true };
+  }
+
+  static async resendVerification(email) {
+    const user = await UserRepository.findByEmail(email);
+    if (!user) {
+      return { success: true };
+    }
+    const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+    await VerifyTokenRepository.create({ token, userId: user.id, expiresAt });
+    
+    // Audit log
+    await AuditLogRepository.create({
+      userId: user.id,
+      action: 'EMAIL_VERIFICATION_SENT',
+      details: 'Verification link resent',
+    });
+    return { token };
+  }
+
+  static async verifyEmail(token) {
+    const verifyToken = await VerifyTokenRepository.findByToken(token);
+    if (!verifyToken) {
+      const error = new Error('Invalid or expired verification token');
+      error.statusCode = 400;
+      throw error;
+    }
+    if (new Date() > verifyToken.expiresAt) {
+      await VerifyTokenRepository.deleteByToken(token);
+      const error = new Error('Verification token has expired');
+      error.statusCode = 400;
+      throw error;
+    }
+    await UserRepository.update(verifyToken.userId, { emailVerified: true });
+    await VerifyTokenRepository.deleteByToken(token);
+    
+    // Audit log
+    await AuditLogRepository.create({
+      userId: verifyToken.userId,
+      action: 'EMAIL_VERIFIED',
+      details: 'Email successfully verified',
+    });
+    return { success: true };
+  }
+
+  static async updateProfile(userId, { name, phone, profileImage }) {
+    const data = {};
+    if (name) {
+      const [firstName, ...lastNameParts] = name.trim().split(' ');
+      data.firstName = firstName;
+      data.lastName = lastNameParts.join(' ') || null;
+    }
+    if (phone !== undefined) data.phone = phone;
+    
+    if (profileImage && profileImage.startsWith('data:image')) {
+      const dir = path.join(process.cwd(), 'uploads');
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      const matches = profileImage.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      if (matches && matches.length === 3) {
+        const ext = matches[1].split('/')[1] || 'png';
+        const base64Data = matches[2];
+        const buffer = Buffer.from(base64Data, 'base64');
+        const filename = `${userId}-${Date.now()}.${ext}`;
+        const filePath = path.join(dir, filename);
+        fs.writeFileSync(filePath, buffer);
+        data.profileImage = `/api/auth/uploads/${filename}`;
+      }
+    } else if (profileImage !== undefined) {
+      data.profileImage = profileImage;
+    }
+
+    const user = await UserRepository.update(userId, data);
+    
+    // Audit log
+    await AuditLogRepository.create({
+      userId,
+      action: 'PROFILE_UPDATED',
+      details: 'User updated profile details',
+    });
+
+    const { passwordHash: _, ...userWithoutPassword } = user;
+    userWithoutPassword.name = `${user.firstName} ${user.lastName || ''}`.trim();
+    return userWithoutPassword;
+  }
 }
 
 export default AuthService;
+
