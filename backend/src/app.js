@@ -5,6 +5,7 @@ import path from 'path';
 import fs from 'fs';
 
 // Routes imports
+import authRoutes from './routes/auth.routes.js';
 import businessRoutes from './routes/business.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
 import adRoutes from './routes/ad.routes.js';
@@ -34,48 +35,32 @@ if (!fs.existsSync(uploadsDir)) {
 app.use('/uploads', express.static(uploadsDir));
 
 // Route Mounts
+app.use('/api/auth', authRoutes);
+
+// Support both singular and plural endpoint patterns
 app.use('/api/businesses', businessRoutes);
+app.use('/api/business', businessRoutes);
+
 app.use('/api/dashboard', dashboardRoutes);
+
 app.use('/api/ads', adRoutes);
+app.use('/api/ad', adRoutes);
+
 app.use('/api/campaigns', campaignRoutes);
+app.use('/api/campaign', campaignRoutes);
+
 app.use('/api/leads', leadRoutes);
+app.use('/api/lead', leadRoutes);
+
 app.use('/api/posters', posterRoutes);
+app.use('/api/poster', posterRoutes);
+
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/review', reviewRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ success: true, status: 'OK' });
-});
-
-// Mock Auth endpoint to prevent login page failures on frontend
-app.post('/api/auth/login', (req, res) => {
-  const { email } = req.body;
-  res.json({
-    success: true,
-    data: {
-      user: {
-        id: 'db-admin-id',
-        email: email || 'admin@trendora.com',
-        name: 'Trendora Administrator',
-        role: 'ADMIN'
-      },
-      accessToken: 'dummy-jwt-access-token'
-    }
-  });
-});
-
-app.get('/api/auth/me', (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      user: {
-        id: 'db-admin-id',
-        email: 'admin@trendora.com',
-        name: 'Trendora Administrator',
-        role: 'ADMIN'
-      }
-    }
-  });
 });
 
 // Global Error Handler

@@ -1,5 +1,5 @@
 datasource db {
-  provider = "mysql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
@@ -7,29 +7,98 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum Role {
+  ADMIN
+  MANAGER
+  EMPLOYEE
+  USER
+  BUSINESS_OWNER
+}
+
 model User {
-  id           String     @id @default(uuid())
-  email        String     @unique
-  name         String
-  passwordHash String
-  role         String     @default("USER")
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  businesses   Business[]
-  reviews      Review[]
+  id                      String                   @id @default(uuid()) @map("_id")
+  uuid                    String                   @unique @default(uuid())
+  firstName               String
+  lastName                String?
+  email                   String                   @unique
+  passwordHash            String
+  phone                   String?
+  profileImage            String?
+  role                    Role                     @default(EMPLOYEE)
+  status                  String                   @default("ACTIVE")
+  emailVerified           Boolean                  @default(false)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  
+  // Future relationships (Business management)
+  businessId              String?
+
+  // Relations
+  refreshTokens           RefreshToken[]
+  passwordResetTokens     PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+  auditLogs               AuditLog[]
+  businesses              Business[]
+  reviews                 Review[]
 
   @@map("users")
 }
 
+model RefreshToken {
+  id        String   @id @default(uuid()) @map("_id")
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid()) @map("_id")
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("password_reset_tokens")
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(uuid()) @map("_id")
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("email_verification_tokens")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @map("_id")
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  details   String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
 model Business {
-  id           String     @id @default(uuid())
+  id           String     @id @default(uuid()) @map("_id")
   name         String
   category     String
   address      String
   phone        String
   website      String?
-  images       Json       // Store array of file image URLs
-  status       String     @default("ACTIVE") // ACTIVE, INACTIVE
+  images       Json
+  status       String     @default("ACTIVE")
   userId       String?
   user         User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt    DateTime   @default(now())
@@ -44,47 +113,45 @@ model Business {
 }
 
 model Ad {
-  id          String   @id @default(uuid())
+  id          String   @id @default(uuid()) @map("_id")
   title       String
-  description String?  @db.Text
+  description String?
   imageUrl    String?
   budget      Float
   startDate   DateTime
   endDate     DateTime
-  status      String   @default("PENDING") // PENDING, ACTIVE, COMPLETED, PAUSED
+  status      String   @default("PENDING")
   businessId  String
   business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([businessId])
   @@map("ads")
 }
 
 model Campaign {
-  id         String   @id @default(uuid())
+  id         String   @id @default(uuid()) @map("_id")
   name       String
-  type       String   // EMAIL, SOCIAL, SMS
+  type       String
   startDate  DateTime
   endDate    DateTime
-  status     String   @default("DRAFT") // DRAFT, RUNNING, COMPLETED
+  status     String   @default("DRAFT")
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   leads      Lead[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  @@index([businessId])
   @@map("campaigns")
 }
 
 model Lead {
-  id         String    @id @default(uuid())
+  id         String    @id @default(uuid()) @map("_id")
   firstName  String
   lastName   String?
   email      String
   phone      String?
-  status     String    @default("NEW") // NEW, CONTACTED, QUALIFIED, LOST, CONVERTED
+  status     String    @default("NEW")
   source     String?
   businessId String
   business   Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -93,13 +160,11 @@ model Lead {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  @@index([businessId])
-  @@index([campaignId])
   @@map("leads")
 }
 
 model Poster {
-  id         String   @id @default(uuid())
+  id         String   @id @default(uuid()) @map("_id")
   title      String
   imageUrl   String
   format     String?
@@ -108,14 +173,13 @@ model Poster {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  @@index([businessId])
   @@map("posters")
 }
 
 model Review {
-  id            String   @id @default(uuid())
+  id            String   @id @default(uuid()) @map("_id")
   rating        Int
-  comment       String?  @db.Text
+  comment       String?
   reviewerName  String
   reviewerEmail String?
   businessId    String
@@ -125,7 +189,5 @@ model Review {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  @@index([businessId])
-  @@index([userId])
   @@map("reviews")
 }

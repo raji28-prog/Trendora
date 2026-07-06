@@ -6,6 +6,7 @@ import { addToast } from '../store/uiSlice.js';
 import Input from '../components/UI/Input.jsx';
 import Button from '../components/UI/Button.jsx';
 import { Mail } from 'lucide-react';
+import api from '../services/api.js';
 
 export const ForgotPassword = () => {
   const dispatch = useDispatch();
@@ -17,11 +18,19 @@ export const ForgotPassword = () => {
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await api.post('/api/auth/forgot-password', data);
       setSubmitted(true);
-      dispatch(addToast({ type: 'success', message: 'Password reset link sent to your email.' }));
+      dispatch(addToast({ type: 'success', message: 'Password reset link generated!' }));
+      if (response.data.data?.token) {
+        dispatch(addToast({ 
+          type: 'info', 
+          message: `Dev Token: ${response.data.data.token}`,
+          duration: 10000 
+        }));
+      }
     } catch (err) {
-      dispatch(addToast({ type: 'error', message: 'An error occurred. Please try again.' }));
+      const errMsg = err.response?.data?.error?.message || 'An error occurred. Please try again.';
+      dispatch(addToast({ type: 'error', message: errMsg }));
     } finally {
       setLoading(false);
     }

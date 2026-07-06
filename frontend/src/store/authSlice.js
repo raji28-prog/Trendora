@@ -54,6 +54,19 @@ const authSlice = createSlice({
       state.accessToken = null;
       localStorage.removeItem('accessToken');
     },
+    updateProfileStart(state) {
+      state.loading = true;
+      state.error = null;
+    },
+    updateProfileSuccess(state, action) {
+      state.loading = false;
+      state.user = action.payload.user;
+      state.error = null;
+    },
+    updateProfileFailure(state, action) {
+      state.loading = false;
+      state.error = action.payload;
+    },
     updateUser(state, action) {
       state.user = { ...state.user, ...action.payload };
     },
@@ -73,6 +86,9 @@ export const {
   getMeStart,
   getMeSuccess,
   getMeFailure,
+  updateProfileStart,
+  updateProfileSuccess,
+  updateProfileFailure,
   updateUser,
   setAccessToken,
 } = authSlice.actions;
