@@ -9,7 +9,8 @@
     "start": "node src/server.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "test": "node --experimental-vm-modules ../node_modules/jest/bin/jest.js --passWithNoTests"
+    "test": "node --experimental-vm-modules ../node_modules/jest/bin/jest.js --passWithNoTests",
+    "vercel-build": "prisma generate"
   },
   "dependencies": {
     "@huggingface/inference": "^4.13.23",
