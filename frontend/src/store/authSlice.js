@@ -1,6 +1,25 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-const initialState = {
+const DEVELOPMENT_MODE = false; // Set to false to restore original authentication
+
+const mockUser = {
+  id: 'mock-admin-id-123456789012',
+  email: 'admin@trendora.com',
+  firstName: 'Trendora',
+  lastName: 'Admin',
+  role: 'ADMIN',
+  status: 'ACTIVE',
+  emailVerified: true,
+  hasBusiness: true
+};
+
+const initialState = DEVELOPMENT_MODE ? {
+  user: mockUser,
+  accessToken: 'mock-access-token',
+  isAuthenticated: true,
+  loading: false,
+  error: null,
+} : {
   user: null,
   accessToken: localStorage.getItem('accessToken') || null,
   isAuthenticated: !!localStorage.getItem('accessToken'),
@@ -54,6 +73,12 @@ const authSlice = createSlice({
       state.accessToken = null;
       localStorage.removeItem('accessToken');
     },
+    // Called for transient errors (network down / 503) — keeps the session alive
+    getMeTransientError(state, action) {
+      state.loading = false;
+      state.error = action.payload;
+      // isAuthenticated, accessToken and user are intentionally left unchanged
+    },
     updateProfileStart(state) {
       state.loading = true;
       state.error = null;
@@ -86,6 +111,7 @@ export const {
   getMeStart,
   getMeSuccess,
   getMeFailure,
+  getMeTransientError,
   updateProfileStart,
   updateProfileSuccess,
   updateProfileFailure,

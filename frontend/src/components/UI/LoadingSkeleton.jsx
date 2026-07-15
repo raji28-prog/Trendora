@@ -6,16 +6,28 @@ export const LoadingSkeleton = ({
   ...props
 }) => {
   const variants = {
-    text: 'h-4 w-full rounded',
+    text:   'h-4 w-full rounded-lg',
     circle: 'h-10 w-10 rounded-full',
-    rect: 'h-24 w-full rounded-xl',
+    rect:   'h-24 w-full rounded-xl',
   };
 
   return (
     <div
-      className={`animate-pulse bg-textSecondary/10 ${variants[variant]} ${className}`}
+      className={`relative overflow-hidden ${variants[variant]} ${className}`}
+      style={{
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.05)',
+      }}
       {...props}
-    />
+    >
+      <div
+        className="absolute inset-0 -translate-x-full animate-shimmer"
+        style={{
+          background:
+            'linear-gradient(90deg, transparent 0%, rgba(124,58,237,0.1) 50%, transparent 100%)',
+        }}
+      />
+    </div>
   );
 };
 

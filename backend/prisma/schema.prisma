@@ -38,6 +38,8 @@ model User {
   passwordResetTokens     PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
   auditLogs               AuditLog[]
+  businesses              Business[]
+  reviews                 Review[]
 
   @@map("users")
 }
@@ -87,4 +89,310 @@ model AuditLog {
 
   @@map("audit_logs")
 }
+
+model Business {
+  id           String     @id @default(uuid()) @map("_id")
+  name         String
+  category     String
+  address      String
+  phone        String
+  website      String?
+  images       Json
+  status       String     @default("ACTIVE")
+  ownerId      String?
+  owner        User?      @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  ads          Ad[]
+  campaigns    Campaign[]
+  leads        Lead[]
+  posters      Poster[]
+  reviews      Review[]
+  posts        Post[]
+  teamMembers  TeamMember[]
+  subscriptions Subscription[]
+  socialAccounts SocialAccount[]
+
+  @@map("businesses")
+}
+
+model Ad {
+  id          String   @id @default(uuid()) @map("_id")
+  title       String
+  description String?
+  imageUrl    String?
+  budget      Float
+  startDate   DateTime
+  endDate     DateTime
+  status      String   @default("PENDING")
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  campaignId  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("advertisements")
+}
+
+model Campaign {
+  id         String   @id @default(uuid()) @map("_id")
+  name       String
+  type       String
+  startDate  DateTime
+  endDate    DateTime
+  status     String   @default("DRAFT")
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  leads      Lead[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("campaigns")
+}
+
+model Lead {
+  id         String    @id @default(uuid()) @map("_id")
+  firstName  String
+  lastName   String?
+  email      String
+  phone      String?
+  status     String    @default("NEW")
+  source     String?
+  businessId String
+  business   Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("leads")
+}
+
+model Poster {
+  id         String   @id @default(uuid()) @map("_id")
+  title      String
+  imageUrl   String
+  format     String?
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  campaignId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("generated_posters")
+}
+
+model Review {
+  id            String   @id @default(uuid()) @map("_id")
+  rating        Int
+  comment       String?
+  reviewerName  String
+  reviewerEmail String?
+  businessId    String
+  business      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("reviews")
+}
+
+model ServiceCategory {
+  id          String    @id @default(uuid()) @map("_id")
+  name        String
+  description String?
+  services    Service[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("service_categories")
+}
+
+model Service {
+  id          String          @id @default(uuid()) @map("_id")
+  name        String
+  description String?
+  price       Float
+  duration    Int             // Duration in minutes
+  categoryId  String
+  category    ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  packageId   String?
+  package     Package?        @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@map("services")
+}
+
+model Package {
+  id          String    @id @default(uuid()) @map("_id")
+  name        String    // e.g. Basic, Pro, Premium
+  price       Float     // Price in USD per month
+  description String?
+  services    Service[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("packages")
+}
+
+model Post {
+  id           String   @id @default(uuid()) @map("_id")
+  content      String
+  platform     String   // e.g. FACEBOOK, INSTAGRAM, TWITTER
+  scheduledFor DateTime
+  status       String   @default("SCHEDULED") // e.g. SCHEDULED, PUBLISHED, FAILED
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  campaignId   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("scheduled_posts")
+}
+
+model TeamMember {
+  id         String   @id @default(uuid()) @map("_id")
+  name       String
+  email      String
+  role       String   @default("EDITOR") // e.g. ADMIN, MANAGER, EDITOR
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("team_members")
+}
+
+model Subscription {
+  id         String   @id @default(uuid()) @map("_id")
+  plan       String   @default("FREE") // FREE, PRO, ENTERPRISE
+  status     String   @default("ACTIVE") // ACTIVE, CANCELED, PAST_DUE
+  expiresAt  DateTime
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("subscriptions")
+}
+
+// ─── Marketing Design Studio ─────────────────────────────────────────────────
+
+model TemplateCategory {
+  id        String     @id @default(uuid()) @map("_id")
+  name      String     @unique
+  icon      String?
+  color     String?
+  sortOrder Int        @default(0)
+  templates Template[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("template_categories")
+}
+
+model Template {
+  id          String           @id @default(uuid()) @map("_id")
+  title       String
+  description String?
+  categoryId  String
+  category    TemplateCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  tags        String[]
+  dimensions  Json
+  isPremium   Boolean          @default(false)
+  isTrending  Boolean          @default(false)
+  isFeatured  Boolean          @default(false)
+  isNew       Boolean          @default(true)
+  thumbnailBg String?
+  layers      Json
+  usageCount  Int              @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  userDesigns UserDesign[]
+
+  @@map("poster_templates")
+}
+
+model UserDesign {
+  id         String    @id @default(uuid()) @map("_id")
+  userId     String
+  templateId String?
+  template   Template? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  title      String    @default("Untitled Design")
+  status     String    @default("DRAFT")
+  dimensions Json
+  background String    @default("#ffffff")
+  layers     Json
+  thumbnail  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("user_designs")
+}
+
+model Asset {
+  id        String   @id @default(uuid()) @map("_id")
+  userId    String
+  type      String   @default("IMAGE")
+  name      String
+  url       String
+  size      Int?
+  mimeType  String?
+  createdAt DateTime @default(now())
+
+  @@map("assets")
+}
+
+model AiGeneration {
+  id               String   @id @default(uuid()) @map("_id")
+  campaignName     String
+  businessName     String
+  businessCategory String
+  createdDate      DateTime @default(now())
+  platforms        String[]
+  inputs           Json
+  outputs          Json
+  downloaded       Boolean  @default(false)
+  regenerated      Boolean  @default(false)
+  favourite        Boolean  @default(false)
+  archived         Boolean  @default(false)
+  userId           String?  @map("ownerId")
+  businessId       String?
+  status           String   @default("ACTIVE")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("ai_generations")
+}
+
+model CampaignReport {
+  id           String   @id @default(uuid()) @map("_id")
+  campaignId   String
+  campaignName String
+  businessName String
+  createdDate  DateTime @default(now())
+  downloads    Int      @default(0)
+  data         Json
+
+  @@map("campaign_reports")
+}
+
+model SocialAccount {
+  id                 String    @id @default(uuid()) @map("_id")
+  platform           String    // e.g. "INSTAGRAM", "FACEBOOK"
+  accountId          String    // e.g. Instagram Business Account ID
+  accountName        String    // Profile Name / Username
+  accessToken        String
+  refreshToken       String?
+  expiresAt          DateTime?
+  businessId         String
+  business           Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@map("social_accounts")
+}
+
 
