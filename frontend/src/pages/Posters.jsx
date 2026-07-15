@@ -32,7 +32,11 @@ import {
   EyeOff,
   Building,
   CreditCard,
-  Lock
+  Lock,
+  Phone,
+  Globe,
+  MapPin,
+  Mail
 } from 'lucide-react';
 import api from '../services/api.js';
 import PremiumPricingModal from '../components/UI/PremiumPricingModal.jsx';
@@ -155,6 +159,20 @@ export const Posters = () => {
   const [ctaTextAi, setCtaTextAi] = useState('');
   const [footerText, setFooterText] = useState('');
   const [generatingContent, setGeneratingContent] = useState(false);
+
+  // Optional customizable Promotion Badge system states
+  const [showPromoBadge, setShowPromoBadge] = useState(false);
+  const [badgeStyle, setBadgeStyle] = useState('Glass Badge');
+  const [badgeText, setBadgeText] = useState('BOGO OFFER');
+  const [badgeColor, setBadgeColor] = useState('#8B5CF6');
+  const [badgeTextColor, setBadgeTextColor] = useState('#FFFFFF');
+  const [badgePosition, setBadgePosition] = useState('Top Left');
+  const [badgeBorderRadius, setBadgeBorderRadius] = useState(12);
+  const [badgeShadow, setBadgeShadow] = useState('soft');
+  const [badgeOpacity, setBadgeOpacity] = useState(1.0);
+  const [badgeFontWeight, setBadgeFontWeight] = useState('bold');
+  const [badgePadding, setBadgePadding] = useState('medium');
+  const [badgeAnimation, setBadgeAnimation] = useState('scaleIn');
 
   // Smart Prompt Builder
   const [optimizedPrompt, setOptimizedPrompt] = useState('');
@@ -474,19 +492,26 @@ export const Posters = () => {
     ctx.textAlign = 'center';
     ctx.fillText(bizName.toUpperCase(), size / 2, 240 * scale);
 
-    // Offer dashed box
-    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
-    ctx.lineWidth = 3 * scale;
-    ctx.setLineDash([12 * scale, 8 * scale]);
-    ctx.strokeRect(80 * scale, 270 * scale, size - 160 * scale, 100 * scale);
-    ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(255,255,255,0.15)';
-    ctx.fillRect(80 * scale, 270 * scale, size - 160 * scale, 100 * scale);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${Math.round(26 * scale)}px Inter, Arial, sans-serif`;
-    ctx.textAlign = 'center';
-    const offerLines = offerText.split('\n');
-    offerLines.forEach((line, i) => ctx.fillText(line, size / 2, (328 + i * 32) * scale));
+    // Offer dashed box or Promotion Badge
+    if (showPromoBadge) {
+      drawCanvasPromoBadge(
+        ctx, badgeText, badgeStyle, badgePosition, badgeColor, badgeTextColor, 
+        scale, size, badgeBorderRadius, badgeShadow, badgeOpacity, badgeFontWeight, badgePadding
+      );
+    } else {
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+      ctx.lineWidth = 3 * scale;
+      ctx.setLineDash([12 * scale, 8 * scale]);
+      ctx.strokeRect(80 * scale, 270 * scale, size - 160 * scale, 100 * scale);
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.fillRect(80 * scale, 270 * scale, size - 160 * scale, 100 * scale);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${Math.round(26 * scale)}px Inter, Arial, sans-serif`;
+      ctx.textAlign = 'center';
+      const offerLines = offerText.split('\n');
+      offerLines.forEach((line, i) => ctx.fillText(line, size / 2, (328 + i * 32) * scale));
+    }
 
     // Tagline
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
@@ -550,6 +575,165 @@ export const Posters = () => {
     document.body.removeChild(a);
     setExportingImg(false);
     dispatch(addToast({ type: 'success', message: `Poster downloaded as ${format.toUpperCase()}!` }));
+  };
+
+  const drawCanvasPromoBadge = (
+    ctx, text, style, position, color, textColor, scale, canvasSize, 
+    borderRadius = 12, shadow = 'soft', opacity = 1.0, fontWeight = 'bold', padding = 'medium'
+  ) => {
+    ctx.save();
+    ctx.globalAlpha = opacity;
+
+    // Set font style
+    const weightVal = fontWeight === 'normal' ? '500' : fontWeight === 'bold' ? '700' : '900';
+    const fontSize = Math.round(18 * scale);
+    ctx.font = `${weightVal} ${fontSize}px Inter, sans-serif`;
+
+    const textWidth = ctx.measureText(text.toUpperCase()).width;
+    
+    // Set padding
+    let padX = 16;
+    let padY = 8;
+    if (padding === 'small') { padX = 10; padY = 4; }
+    if (padding === 'large') { padX = 24; padY = 12; }
+    padX = Math.round(padX * scale);
+    padY = Math.round(padY * scale);
+
+    const badgeWidth = textWidth + padX * 2;
+    const badgeHeight = fontSize + padY * 2;
+
+    // Calculate position X and Y
+    let x = 40 * scale;
+    let y = 140 * scale; // below logo
+
+    if (position === 'Top Right') {
+      x = canvasSize - badgeWidth - 40 * scale;
+    } else if (position === 'Bottom Left') {
+      y = canvasSize - badgeHeight - 160 * scale; // above footer
+    } else if (position === 'Bottom Right') {
+      x = canvasSize - badgeWidth - 40 * scale;
+      y = canvasSize - badgeHeight - 160 * scale;
+    } else if (position === 'Center') {
+      x = canvasSize / 2 - badgeWidth / 2;
+      y = canvasSize / 2 - badgeHeight / 2 - 20 * scale;
+    }
+
+    // Shadow mapping
+    if (shadow === 'soft') {
+      ctx.shadowColor = 'rgba(0,0,0,0.15)';
+      ctx.shadowBlur = 10 * scale;
+      ctx.shadowOffsetY = 4 * scale;
+    } else if (shadow === 'glow') {
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 15 * scale;
+    } else if (shadow === 'heavy') {
+      ctx.shadowColor = 'rgba(0,0,0,0.35)';
+      ctx.shadowBlur = 20 * scale;
+      ctx.shadowOffsetY = 8 * scale;
+    }
+
+    // Draw styles
+    if (style === 'Glass Badge') {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+      ctx.lineWidth = 1 * scale;
+      
+      ctx.beginPath();
+      ctx.roundRect(x, y, badgeWidth, badgeHeight, borderRadius * scale);
+      ctx.fill();
+      ctx.stroke();
+      
+      ctx.fillStyle = textColor;
+    } else if (style === 'Premium Pill') {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect(x, y, badgeWidth, badgeHeight, 9999 * scale);
+      ctx.fill();
+      
+      ctx.fillStyle = textColor;
+    } else if (style === 'Luxury Ribbon') {
+      ctx.fillStyle = color;
+      
+      ctx.beginPath();
+      // Draw ribbon shape (clipPath: polygon(100% 0, 93% 50%, 100% 100%, 0% 100%, 0% 0%))
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + badgeWidth, y);
+      ctx.lineTo(x + badgeWidth - 12 * scale, y + badgeHeight / 2);
+      ctx.lineTo(x + badgeWidth, y + badgeHeight);
+      ctx.lineTo(x, y + badgeHeight);
+      ctx.closePath();
+      ctx.fill();
+      
+      ctx.fillStyle = textColor;
+    } else if (style === 'Corner Ribbon') {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect(x, y, badgeWidth, badgeHeight, 4 * scale);
+      ctx.fill();
+      
+      ctx.fillStyle = textColor;
+    } else if (style === 'Neon Glow') {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2 * scale;
+      
+      ctx.beginPath();
+      ctx.roundRect(x, y, badgeWidth, badgeHeight, borderRadius * scale);
+      ctx.fill();
+      ctx.stroke();
+      
+      ctx.fillStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 6 * scale;
+    } else if (style === 'Gold Label') {
+      const grad = ctx.createLinearGradient(x, y, x + badgeWidth, y + badgeHeight);
+      grad.addColorStop(0, '#F59E0B');
+      grad.addColorStop(0.5, '#D97706');
+      grad.addColorStop(1, '#FBBF24');
+      ctx.fillStyle = grad;
+      
+      ctx.beginPath();
+      ctx.roundRect(x, y, badgeWidth, badgeHeight, borderRadius * scale);
+      ctx.fill();
+      
+      ctx.strokeStyle = '#B45309';
+      ctx.lineWidth = 1 * scale;
+      ctx.stroke();
+      
+      ctx.fillStyle = '#1E293B';
+    } else if (style === 'Minimal Outline') {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1 * scale;
+      ctx.beginPath();
+      ctx.roundRect(x, y, badgeWidth, badgeHeight, borderRadius * scale);
+      ctx.stroke();
+      
+      ctx.fillStyle = color;
+    } else if (style === 'Soft Gradient Chip') {
+      const grad = ctx.createLinearGradient(x, y, x + badgeWidth, y);
+      grad.addColorStop(0, color);
+      grad.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
+      ctx.fillStyle = grad;
+      
+      ctx.beginPath();
+      ctx.roundRect(x, y, badgeWidth, badgeHeight, borderRadius * scale);
+      ctx.fill();
+      
+      // Draw left accent bar
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, 4 * scale, badgeHeight);
+      
+      ctx.fillStyle = textColor;
+    }
+
+    // Reset shadow for text to be clean
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+
+    // Draw text inside badge
+    ctx.textAlign = 'center';
+    ctx.fillText(text.toUpperCase(), x + badgeWidth / 2, y + padY + fontSize - 2 * scale);
+    ctx.restore();
   };
 
   const loadImage = (src) => {
@@ -680,29 +864,24 @@ export const Posters = () => {
         ctx.shadowBlur = 0;
       }
 
-      // 8. Draw Offer Text (highlight box)
+      // 8. Draw Offer Text (highlight box or modern Promotion Badge)
       if (promoOffer) {
-        ctx.save();
-        ctx.fillStyle = 'rgba(220, 38, 38, 0.9)';
-        const boxWidth = Math.max(500, ctx.measureText(promoOffer).width + 80);
-        const boxHeight = 100;
-        const x = size / 2 - boxWidth / 2;
-        const y = size / 2 - boxHeight / 2 - 20;
-        
-        ctx.beginPath();
-        ctx.roundRect(x, y, boxWidth, boxHeight, 16);
-        ctx.fill();
-        
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 3;
-        ctx.setLineDash([12, 6]);
-        ctx.stroke();
-
-        ctx.fillStyle = '#ffffff';
-        ctx.textAlign = 'center';
-        ctx.font = '900 36px system-ui, -apple-system, sans-serif';
-        ctx.fillText(promoOffer, size / 2, size / 2 + 10 - 20);
-        ctx.restore();
+        if (showPromoBadge) {
+          drawCanvasPromoBadge(
+            ctx, badgeText, badgeStyle, badgePosition, badgeColor, badgeTextColor, 
+            1.0, size, badgeBorderRadius, badgeShadow, badgeOpacity, badgeFontWeight, badgePadding
+          );
+        } else {
+          // Draw clean, elegant typography instead of the outdated red box
+          ctx.save();
+          ctx.fillStyle = '#ffffff';
+          ctx.textAlign = 'center';
+          ctx.font = '900 38px system-ui, -apple-system, sans-serif';
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+          ctx.shadowBlur = 10;
+          ctx.fillText(promoOffer.toUpperCase(), size / 2, size / 2 + 10 - 20);
+          ctx.restore();
+        }
       }
 
       // 9. Draw CTA (rounded button pill)
@@ -1092,6 +1271,192 @@ export const Posters = () => {
     });
   };
 
+  const renderPromoBadgeCard = () => (
+    <Card className="bg-surface border border-border p-5 shadow-glass space-y-4">
+      <div className="flex items-center justify-between border-b border-border pb-2.5">
+        <div className="flex items-center gap-2">
+          <Megaphone className="w-5 h-5 text-primary" />
+          <h3 className="text-sm font-bold text-textPrimary">Promotional Offer Badge</h3>
+        </div>
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <span className="text-xs font-semibold text-textSecondary">Show Promotion Badge</span>
+          <div className="relative">
+            <input 
+              type="checkbox" 
+              checked={showPromoBadge} 
+              onChange={(e) => setShowPromoBadge(e.target.checked)} 
+              className="sr-only peer"
+            />
+            <div className="w-9 h-5 bg-white/[0.06] border border-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+          </div>
+        </label>
+      </div>
+
+      {showPromoBadge && (
+        <div className="space-y-4 pt-2 animate-fadeIn">
+          {/* Badge Text & Style */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold text-textSecondary uppercase">Badge Text</label>
+              <input
+                type="text"
+                value={badgeText}
+                onChange={(e) => setBadgeText(e.target.value)}
+                className="w-full bg-sectionBackground border border-border focus:border-primary rounded-lg px-3 py-2 text-xs outline-none text-textPrimary font-semibold"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold text-textSecondary uppercase">Style Theme</label>
+              <select
+                value={badgeStyle}
+                onChange={(e) => setBadgeStyle(e.target.value)}
+                className="w-full bg-sectionBackground border border-border rounded-lg px-3 py-2 text-xs text-textPrimary outline-none focus:border-primary"
+              >
+                <option value="Glass Badge">Glass Badge</option>
+                <option value="Premium Pill">Premium Pill</option>
+                <option value="Luxury Ribbon">Luxury Ribbon</option>
+                <option value="Corner Ribbon">Corner Ribbon</option>
+                <option value="Neon Glow">Neon Glow</option>
+                <option value="Gold Label">Gold Label</option>
+                <option value="Minimal Outline">Minimal Outline</option>
+                <option value="Soft Gradient Chip">Soft Gradient Chip</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Position & Padding */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold text-textSecondary uppercase">Position</label>
+              <select
+                value={badgePosition}
+                onChange={(e) => setBadgePosition(e.target.value)}
+                className="w-full bg-sectionBackground border border-border rounded-lg px-3 py-2 text-xs text-textPrimary outline-none focus:border-primary"
+              >
+                <option value="Top Left">Top Left</option>
+                <option value="Top Right">Top Right</option>
+                <option value="Bottom Left">Bottom Left</option>
+                <option value="Bottom Right">Bottom Right</option>
+                <option value="Center">Center</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold text-textSecondary uppercase">Padding</label>
+              <select
+                value={badgePadding}
+                onChange={(e) => setBadgePadding(e.target.value)}
+                className="w-full bg-sectionBackground border border-border rounded-lg px-3 py-2 text-xs text-textPrimary outline-none focus:border-primary"
+              >
+                <option value="small">Small</option>
+                <option value="medium">Medium</option>
+                <option value="large">Large</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Colors Selection */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold text-textSecondary uppercase">Badge Color</label>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="color"
+                  value={badgeColor}
+                  onChange={(e) => setBadgeColor(e.target.value)}
+                  className="w-8 h-8 rounded-lg border-none bg-transparent cursor-pointer"
+                />
+                <span className="text-xs font-mono text-textSecondary">{badgeColor}</span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold text-textSecondary uppercase">Text Color</label>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="color"
+                  value={badgeTextColor}
+                  onChange={(e) => setBadgeTextColor(e.target.value)}
+                  className="w-8 h-8 rounded-lg border-none bg-transparent cursor-pointer"
+                />
+                <span className="text-xs font-mono text-textSecondary">{badgeTextColor}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Font Weight & Radius */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold text-textSecondary uppercase">Font Weight</label>
+              <select
+                value={badgeFontWeight}
+                onChange={(e) => setBadgeFontWeight(e.target.value)}
+                className="w-full bg-sectionBackground border border-border rounded-lg px-3 py-2 text-xs text-textPrimary outline-none focus:border-primary"
+              >
+                <option value="normal">Normal</option>
+                <option value="bold">Bold</option>
+                <option value="extrabold">Extra Bold</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold text-textSecondary uppercase">Border Radius ({badgeBorderRadius}px)</label>
+              <input
+                type="range"
+                min="0"
+                max="30"
+                value={badgeBorderRadius}
+                onChange={(e) => setBadgeBorderRadius(parseInt(e.target.value))}
+                className="w-full h-1.5 bg-white/[0.06] rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+            </div>
+          </div>
+
+          {/* Shadow & Opacity */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold text-textSecondary uppercase">Shadow Style</label>
+              <select
+                value={badgeShadow}
+                onChange={(e) => setBadgeShadow(e.target.value)}
+                className="w-full bg-sectionBackground border border-border rounded-lg px-3 py-2 text-xs text-textPrimary outline-none focus:border-primary"
+              >
+                <option value="none">None</option>
+                <option value="soft">Soft</option>
+                <option value="glow">Neon Glow</option>
+                <option value="heavy">Heavy</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold text-textSecondary uppercase">Opacity ({Math.round(badgeOpacity * 100)}%)</label>
+              <input
+                type="range"
+                min="0.2"
+                max="1.0"
+                step="0.05"
+                value={badgeOpacity}
+                onChange={(e) => setBadgeOpacity(parseFloat(e.target.value))}
+                className="w-full h-1.5 bg-white/[0.06] rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+            </div>
+          </div>
+
+          {/* Animation choosing */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold text-textSecondary uppercase">Enter Animation</label>
+            <select
+              value={badgeAnimation}
+              onChange={(e) => setBadgeAnimation(e.target.value)}
+              className="w-full bg-sectionBackground border border-border rounded-lg px-3 py-2 text-xs text-textPrimary outline-none focus:border-primary"
+            >
+              <option value="fadeIn">Fade In</option>
+              <option value="scaleIn">Scale In</option>
+              <option value="slide">Slide In</option>
+              <option value="glowPulse">Glow Pulse (Continuous)</option>
+            </select>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+
 
   return (
     <div className="flex flex-col gap-6 w-full text-textPrimary">
@@ -1285,42 +1650,42 @@ export const Posters = () => {
                 <div className="flex gap-3 items-center">
                   <input type="checkbox" checked={showName} onChange={(e) => setShowName(e.target.checked)} className="rounded text-primary h-4 w-4 border-border cursor-pointer" />
                   <div className="flex-1">
-                    <Input label="Business Name" value={bizNameEdit} onChange={(e) => setBizNameEdit(e.target.value)} disabled={!showName} />
+                    <Input label="Business Name" icon={Building} value={bizNameEdit} onChange={(e) => setBizNameEdit(e.target.value)} disabled={!showName} />
                   </div>
                 </div>
                 {/* Category */}
                 <div className="flex gap-3 items-center">
                   <input type="checkbox" checked={showCategory} onChange={(e) => setShowCategory(e.target.checked)} className="rounded text-primary h-4 w-4 border-border cursor-pointer" />
                   <div className="flex-1">
-                    <Input label="Category" value={bizCategoryEdit} onChange={(e) => setBizCategoryEdit(e.target.value)} disabled={!showCategory} />
+                    <Input label="Category" icon={Building} value={bizCategoryEdit} onChange={(e) => setBizCategoryEdit(e.target.value)} disabled={!showCategory} />
                   </div>
                 </div>
                 {/* Phone */}
                 <div className="flex gap-3 items-center">
                   <input type="checkbox" checked={showPhone} onChange={(e) => setShowPhone(e.target.checked)} className="rounded text-primary h-4 w-4 border-border cursor-pointer" />
                   <div className="flex-1">
-                    <Input label="Phone Number" value={phoneEdit} onChange={(e) => setPhoneEdit(e.target.value)} disabled={!showPhone} />
+                    <Input label="Phone Number" icon={Phone} value={phoneEdit} onChange={(e) => setPhoneEdit(e.target.value)} disabled={!showPhone} />
                   </div>
                 </div>
                 {/* Address */}
                 <div className="flex gap-3 items-center">
                   <input type="checkbox" checked={showAddress} onChange={(e) => setShowAddress(e.target.checked)} className="rounded text-primary h-4 w-4 border-border cursor-pointer" />
                   <div className="flex-1">
-                    <Input label="Address" value={addressEdit} onChange={(e) => setAddressEdit(e.target.value)} disabled={!showAddress} />
+                    <Input label="Address" icon={MapPin} value={addressEdit} onChange={(e) => setAddressEdit(e.target.value)} disabled={!showAddress} />
                   </div>
                 </div>
                 {/* Website */}
                 <div className="flex gap-3 items-center">
                   <input type="checkbox" checked={showWebsite} onChange={(e) => setShowWebsite(e.target.checked)} className="rounded text-primary h-4 w-4 border-border cursor-pointer" />
                   <div className="flex-1">
-                    <Input label="Website Url" value={websiteEdit} onChange={(e) => setWebsiteEdit(e.target.value)} disabled={!showWebsite} />
+                    <Input label="Website Url" icon={Globe} value={websiteEdit} onChange={(e) => setWebsiteEdit(e.target.value)} disabled={!showWebsite} />
                   </div>
                 </div>
                 {/* Email */}
                 <div className="flex gap-3 items-center">
                   <input type="checkbox" checked={showEmail} onChange={(e) => setShowEmail(e.target.checked)} className="rounded text-primary h-4 w-4 border-border cursor-pointer" />
                   <div className="flex-1">
-                    <Input label="Email" value={emailEdit} onChange={(e) => setEmailEdit(e.target.value)} disabled={!showEmail} />
+                    <Input label="Email" icon={Mail} value={emailEdit} onChange={(e) => setEmailEdit(e.target.value)} disabled={!showEmail} />
                   </div>
                 </div>
               </div>
@@ -1366,6 +1731,9 @@ export const Posters = () => {
                 </div>
               </div>
             </Card>
+
+            {/* Promotional Offer Badge Options */}
+            {renderPromoBadgeCard()}
 
             {/* 5. Smart Prompt Builder */}
             <Card className="bg-surface border border-border p-5 shadow-glass">
@@ -1636,24 +2004,16 @@ export const Posters = () => {
                 <div className="space-y-3">
                   <Input label="Poster Title *" placeholder="e.g. Diwali Grand Sale 2025" value={posterTitle} onChange={(e) => setPosterTitle(e.target.value)} />
                   <div className="grid grid-cols-2 gap-3">
-                    <Input label="Business Name *" placeholder="e.g. Raj Bakery" value={bizName} onChange={(e) => setBizName(e.target.value)} />
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold text-textSecondary">Category</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Bakery, Salon..."
-                        className="w-full bg-sectionBackground border border-border focus:border-primary rounded-lg px-2.5 py-1.5 text-xs outline-none"
-                        onChange={(e) => {}}
-                      />
-                    </div>
+                    <Input label="Business Name *" placeholder="e.g. Raj Bakery" icon={Building} value={bizName} onChange={(e) => setBizName(e.target.value)} />
+                    <Input label="Category" placeholder="e.g. Bakery, Salon..." icon={Building} onChange={(e) => {}} />
                   </div>
                   <Input label="Offer Text" placeholder="e.g. 30% OFF This Weekend" value={offerText} onChange={(e) => setOfferText(e.target.value)} />
                   <Input label="CTA Button" placeholder="e.g. Call Now to Book" value={ctaText} onChange={(e) => setCtaText(e.target.value)} />
                   <div className="grid grid-cols-2 gap-3">
-                    <Input label="Phone" placeholder="+91 98765 43210" value={phone} onChange={(e) => setPhone(e.target.value)} />
-                    <Input label="Website" placeholder="www.business.com" value={website} onChange={(e) => setWebsite(e.target.value)} />
+                    <Input label="Phone" placeholder="+91 98765 43210" icon={Phone} value={phone} onChange={(e) => setPhone(e.target.value)} />
+                    <Input label="Website" placeholder="www.business.com" icon={Globe} value={website} onChange={(e) => setWebsite(e.target.value)} />
                   </div>
-                  <Input label="Address" placeholder="123 Main Street, City" value={address} onChange={(e) => setAddress(e.target.value)} />
+                  <Input label="Address" placeholder="123 Main Street, City" icon={MapPin} value={address} onChange={(e) => setAddress(e.target.value)} />
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-textSecondary">Slogan Tagline</label>
                     <textarea
@@ -1666,7 +2026,7 @@ export const Posters = () => {
                 </div>
               )}
             </Card>
-
+ 
             {/* Overlays Editor - only show in business mode since custom mode has it in left panel */}
             {profileMode === 'business' && (
             <Card className="bg-surface border border-border p-5 shadow-glass space-y-4">
@@ -1674,9 +2034,9 @@ export const Posters = () => {
                 <Palette className="w-5 h-5 text-primary" />
                 <h3 className="text-sm font-bold text-textPrimary">Customize Layout Details</h3>
               </div>
-
+ 
               <Input label="Poster Title *" value={posterTitle} onChange={(e) => setPosterTitle(e.target.value)} />
-              <Input label="Business Name Brand" value={bizName} onChange={(e) => setBizName(e.target.value)} />
+              <Input label="Business Name Brand" icon={Building} value={bizName} onChange={(e) => setBizName(e.target.value)} />
               <Input label="Offer Banner Text" value={offerText} onChange={(e) => setOfferText(e.target.value)} />
               
               <div className="flex flex-col gap-1.5">
@@ -1687,15 +2047,18 @@ export const Posters = () => {
                   className="w-full bg-sectionBackground border border-border focus:border-primary rounded-lg p-2.5 text-xs outline-none h-16 resize-none"
                 />
               </div>
-
+ 
               <Input label="CTA Button" value={ctaText} onChange={(e) => setCtaText(e.target.value)} />
-
+ 
               <div className="grid grid-cols-2 gap-3 pt-2">
-                <Input label="Contact Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-                <Input label="Website Address" value={website} onChange={(e) => setWebsite(e.target.value)} />
+                <Input label="Contact Phone" icon={Phone} value={phone} onChange={(e) => setPhone(e.target.value)} />
+                <Input label="Website Address" icon={Globe} value={website} onChange={(e) => setWebsite(e.target.value)} />
               </div>
             </Card>
             )}
+
+            {/* Promotional Offer Badge Options */}
+            {renderPromoBadgeCard()}
           </div>
 
           {/* Center: Live interactive poster display */}
@@ -1713,9 +2076,96 @@ export const Posters = () => {
                 className="w-full aspect-square rounded-2xl p-8 flex flex-col justify-between text-center relative overflow-hidden text-white shadow-premium"
               >
                 {/* Badge */}
-                <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md border border-white/35 rounded-full px-3 py-1 text-[9px] font-bold uppercase tracking-wider">
-                  {activeTemplate.category}
-                </div>
+                {showPromoBadge ? (
+                  <div
+                    className="absolute z-[5] select-none pointer-events-none"
+                    style={{
+                      // Position mappings
+                      ...(badgePosition === 'Top Left' && { top: '16px', left: '16px' }),
+                      ...(badgePosition === 'Top Right' && { top: '16px', right: '16px' }),
+                      ...(badgePosition === 'Bottom Left' && { bottom: '64px', left: '16px' }),
+                      ...(badgePosition === 'Bottom Right' && { bottom: '64px', right: '16px' }),
+                      ...(badgePosition === 'Center' && { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }),
+                    }}
+                  >
+                    <div
+                      className={`text-xs font-semibold flex items-center justify-center ${
+                        badgeAnimation === 'fadeIn' ? 'animate-badge-fadeIn' :
+                        badgeAnimation === 'scaleIn' ? 'animate-badge-scaleIn' :
+                        badgeAnimation === 'slide' ? 'animate-badge-slide' :
+                        badgeAnimation === 'glowPulse' ? 'animate-badge-glowPulse' : ''
+                      }`}
+                      style={{
+                        padding: badgePadding === 'small' ? '4px 10px' : badgePadding === 'medium' ? '8px 16px' : '12px 24px',
+                        borderRadius: `${badgeBorderRadius}px`,
+                        fontWeight: badgeFontWeight === 'normal' ? 500 : badgeFontWeight === 'bold' ? 700 : 900,
+                        opacity: badgeOpacity,
+                        transition: 'all 0.3s ease',
+                        '--badge-color': badgeColor,
+                        '--badge-opacity': badgeOpacity,
+
+                        // Style theme mappings
+                        ...(badgeStyle === 'Glass Badge' && {
+                          background: 'rgba(255, 255, 255, 0.15)',
+                          backdropFilter: 'blur(12px)',
+                          WebkitBackdropFilter: 'blur(12px)',
+                          border: '1px solid rgba(255, 255, 255, 0.25)',
+                          color: badgeTextColor
+                        }),
+                        ...(badgeStyle === 'Premium Pill' && {
+                          background: badgeColor,
+                          borderRadius: '9999px',
+                          color: badgeTextColor,
+                          boxShadow: badgeShadow === 'soft' ? '0 4px 10px rgba(0,0,0,0.15)' : badgeShadow === 'glow' ? `0 0 15px ${badgeColor}` : badgeShadow === 'heavy' ? '0 8px 24px rgba(0,0,0,0.3)' : 'none'
+                        }),
+                        ...(badgeStyle === 'Luxury Ribbon' && {
+                          background: badgeColor,
+                          color: badgeTextColor,
+                          clipPath: 'polygon(100% 0, 93% 50%, 100% 100%, 0% 100%, 0% 0%)',
+                          paddingRight: '22px',
+                          boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+                        }),
+                        ...(badgeStyle === 'Corner Ribbon' && {
+                          background: badgeColor,
+                          color: badgeTextColor,
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                          transform: badgePosition === 'Top Left' ? 'rotate(-15deg)' : badgePosition === 'Top Right' ? 'rotate(15deg)' : 'none'
+                        }),
+                        ...(badgeStyle === 'Neon Glow' && {
+                          border: `2px solid ${badgeColor}`,
+                          color: badgeColor,
+                          background: 'rgba(0,0,0,0.4)',
+                          textShadow: `0 0 4px ${badgeColor}`,
+                          boxShadow: `0 0 10px ${badgeColor}, inset 0 0 5px ${badgeColor}`
+                        }),
+                        ...(badgeStyle === 'Gold Label' && {
+                          background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 50%, #FBBF24 100%)',
+                          border: '1px solid #B45309',
+                          color: '#1E293B',
+                          textShadow: '0 1px 0 rgba(255,255,255,0.4)',
+                          boxShadow: '0 4px 12px rgba(180,83,9,0.2)'
+                        }),
+                        ...(badgeStyle === 'Minimal Outline' && {
+                          border: `1px solid ${badgeColor}`,
+                          background: 'transparent',
+                          color: badgeColor
+                        }),
+                        ...(badgeStyle === 'Soft Gradient Chip' && {
+                          background: `linear-gradient(135deg, ${badgeColor} 0%, rgba(255,255,255,0.05) 100%)`,
+                          borderLeft: `3px solid ${badgeColor}`,
+                          color: badgeTextColor,
+                          boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+                        }),
+                      }}
+                    >
+                      <span className="uppercase tracking-wider text-[10px]">{badgeText}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md border border-white/35 rounded-full px-3 py-1 text-[9px] font-bold uppercase tracking-wider">
+                    {activeTemplate.category}
+                  </div>
+                )}
 
                 {/* Header */}
                 <div>
@@ -1724,9 +2174,11 @@ export const Posters = () => {
                 </div>
 
                 {/* Middle BOGO offer */}
-                <div className="bg-white/10 backdrop-blur-sm border-2 border-dashed border-white/40 p-4 rounded-xl my-4 flex items-center justify-center">
-                  <span className="text-lg font-black tracking-wide uppercase">{offerText}</span>
-                </div>
+                {!showPromoBadge && (
+                  <div className="bg-white/10 backdrop-blur-sm border-2 border-dashed border-white/40 p-4 rounded-xl my-4 flex items-center justify-center">
+                    <span className="text-lg font-black tracking-wide uppercase">{offerText}</span>
+                  </div>
+                )}
 
                 {/* CTA & Taglines */}
                 <div>

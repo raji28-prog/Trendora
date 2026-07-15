@@ -2,8 +2,6 @@ import env from './config/env.js';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import path from 'path';
-import fs from 'fs';
 
 // Routes imports
 import healthRouter from './routes/health.routes.js';
@@ -27,33 +25,29 @@ import socialAccountsRoutes from './routes/social-accounts.routes.js';
 
 const app = express();
 
-// Configure CORS
+// ── CORS ──────────────────────────────────────────────────────────────────────
+// In production: allow only the deployed frontend URL.
+// In development: allow all origins (Vite dev server).
+const allowedOrigins = env.NODE_ENV === 'production' && env.FRONTEND_URL
+  ? [env.FRONTEND_URL]
+  : true; // true = reflect request Origin (any origin) — safe for dev
+
 app.use(cors({
-  origin: true,
+  origin: allowedOrigins,
   credentials: true,
 }));
 
-// Body parsers with limits for base64 uploads
+// ── Body parsers (generous limit for base64 image payloads) ───────────────────
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 app.use(cookieParser());
 
-// Custom Static files serving for uploaded assets
-const uploadsDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-app.use('/uploads', express.static(uploadsDir, {
-  setHeaders: (res) => {
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-  }
-}));
+// NOTE: /uploads static file serving has been removed.
+// All images are now served via Cloudinary CDN URLs stored in the database.
 
-// Route Mounts
+// ── Route Mounts ─────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 
-// Support both singular and plural endpoint patterns
 app.use('/api/businesses', businessRoutes);
 app.use('/api/business', businessRoutes);
 
@@ -74,7 +68,6 @@ app.use('/api/poster', posterRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/review', reviewRoutes);
 
-// Phase 4 & 5 Routes
 app.use('/api/services', serviceRoutes);
 app.use('/api/service', serviceRoutes);
 app.use('/api/services/categories', serviceRoutes);
@@ -90,23 +83,17 @@ app.use('/api/billing', billingRoutes);
 app.use('/api/subscriptions', billingRoutes);
 
 app.use('/api/ai', aiRoutes);
-
 app.use('/api/gbp', gbpRoutes);
-
 app.use('/api/studio', studioRoutes);
 app.use('/api/instagram', instagramRoutes);
 app.use('/api/social-accounts', socialAccountsRoutes);
 
-// Health check endpoint
 app.use('/api/health', healthRouter);
 
-// Global Error Handler
+// ── Global Error Handler ──────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error('Express Error:', err);
 
-  // ── Prisma / MongoDB connection errors ───────────────────────────────────
-  // Prisma error code P2010 = raw query failed (includes Atlas connectivity)
-  // Prisma error code P2025 = record not found
   if (err?.code === 'P2010' || err?.constructor?.name === 'PrismaClientKnownRequestError') {
     const meta = err?.meta?.message || '';
     const isConnectivity =
@@ -117,10 +104,7 @@ app.use((err, req, res, next) => {
     if (isConnectivity) {
       return res.status(503).json({
         success: false,
-        error: {
-          statusCode: 503,
-          message: 'Database is temporarily unavailable. Please try again shortly.',
-        },
+        error: { statusCode: 503, message: 'Database is temporarily unavailable. Please try again shortly.' },
       });
     }
 
@@ -137,24 +121,17 @@ app.use((err, req, res, next) => {
     });
   }
 
-  // ── PrismaClientInitializationError (can't connect at all) ───────────────
   if (err?.constructor?.name === 'PrismaClientInitializationError') {
     return res.status(503).json({
       success: false,
-      error: {
-        statusCode: 503,
-        message: 'Database connection could not be established.',
-      },
+      error: { statusCode: 503, message: 'Database connection could not be established.' },
     });
   }
 
   const statusCode = err.statusCode || 500;
   res.status(statusCode).json({
     success: false,
-    error: {
-      statusCode,
-      message: err.message || 'Internal Server Error',
-    },
+    error: { statusCode, message: err.message || 'Internal Server Error' },
   });
 });
 

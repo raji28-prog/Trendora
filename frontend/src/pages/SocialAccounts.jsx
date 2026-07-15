@@ -83,7 +83,8 @@ const SocialAccounts = () => {
       return;
     }
     // Directly hit the callback endpoint with mock params to simulate Meta redirect callback
-    window.location.href = `http://localhost:5000/api/instagram/callback?code=mock_code_sandbox&state=${selectedBusinessId}`;
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    window.location.href = `${apiBase}/api/instagram/callback?code=mock_code_sandbox&state=${selectedBusinessId}`;
   };
 
   const handleDisconnect = async (accountId) => {

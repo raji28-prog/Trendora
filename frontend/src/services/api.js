@@ -2,8 +2,10 @@ import axios from 'axios';
 import store from '../store/index.js';
 import { setAccessToken, logout } from '../store/authSlice.js';
 
+// In development: empty baseURL — Vite proxy forwards /api → localhost:5000
+// In production: VITE_API_URL = https://your-railway-backend.up.railway.app
 export const api = axios.create({
-  baseURL: '', // Relative URL matches proxy configuration in vite.config.js
+  baseURL: import.meta.env.VITE_API_URL || '',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -58,7 +60,7 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const response = await axios.post('/api/auth/refresh', {}, { withCredentials: true });
+        const response = await api.post('/api/auth/refresh', {}, { withCredentials: true });
         const { accessToken } = response.data.data;
 
         store.dispatch(setAccessToken(accessToken));

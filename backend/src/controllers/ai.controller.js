@@ -1,48 +1,27 @@
 import prisma from '../database/prisma.js';
 import { generateMarketingContent, callGroqChatCompletion, generateImageFromProvider } from '../services/ai.service.js';
 import { validateAiInputs } from '../validations/ai.validation.js';
-import { uploadToCloudinary } from '../config/cloudinary.js';
-import fs from 'fs';
-import path from 'path';
+import { uploadToCloudinary, isCloudinaryConfigured } from '../config/cloudinary.js';
 
-// Helper to save base64 image strings locally
-const saveBase64Image = (base64Str, id) => {
-  if (!base64Str || !base64Str.startsWith('data:image')) return base64Str;
-  const dir = path.join(process.cwd(), 'uploads');
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-  const matches = base64Str.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-  if (!matches || matches.length !== 3) return null;
-  const ext = matches[1].split('/')[1] || 'png';
-  const base64Data = matches[2];
-  const buffer = Buffer.from(base64Data, 'base64');
-  const filename = `ai-poster-${id}-${Date.now()}.${ext}`;
-  const filePath = path.join(dir, filename);
-  fs.writeFileSync(filePath, buffer);
-  return `/uploads/${filename}`;
-};
+/**
+ * Persist an AI-generated image URL (base64 or remote http) to Cloudinary.
+ * Falls back to returning the raw URL if Cloudinary is not configured.
+ * No filesystem operations — fully serverless-compatible.
+ */
+const persistGeneratedImage = async (generatedUrl) => {
+  if (!generatedUrl) return null;
 
-// Helper to download remote HTTP/HTTPS images and save them locally
-const downloadAndSaveImage = async (url, id) => {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Failed to download image: ${res.statusText}`);
-    const arrayBuffer = await res.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    
-    const dir = path.join(process.cwd(), 'uploads');
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+  if (isCloudinaryConfigured()) {
+    try {
+      // Both base64 URIs and https:// URLs are accepted by Cloudinary directly
+      return await uploadToCloudinary(generatedUrl, { folder: 'trendora_ai_posters' });
+    } catch (err) {
+      console.warn('Cloudinary upload failed, using raw generated URL:', err.message);
     }
-    const filename = `ai-poster-${id}-${Date.now()}.png`;
-    const filePath = path.join(dir, filename);
-    fs.writeFileSync(filePath, buffer);
-    return `/uploads/${filename}`;
-  } catch (err) {
-    console.error('Failed to download and save remote image locally:', err.message);
-    return url; // Fallback to raw remote URL if download fails
   }
+
+  // Fallback: return the raw URL/base64 directly — no disk write
+  return generatedUrl;
 };
 
 // AI Content Generator — stub templates
@@ -598,28 +577,9 @@ export const generatePosterImage = async (req, res, next) => {
     // Call AI image provider
     const generatedUrl = await generateImageFromProvider(prompt);
 
-    // Upload generated image to Cloudinary to make it permanent
-    console.log('Uploading AI generated image to Cloudinary...');
-    let finalUrl = null;
-    try {
-      if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_CLOUD_NAME !== 'your_cloud_name') {
-        finalUrl = await uploadToCloudinary(generatedUrl);
-      }
-    } catch (cloudinaryErr) {
-      console.warn('Cloudinary upload failed, falling back to local storage or raw URL:', cloudinaryErr.message);
-    }
-
-    if (!finalUrl) {
-      if (generatedUrl && generatedUrl.startsWith('data:image')) {
-        const tempId = Math.random().toString(36).substring(2, 10);
-        finalUrl = saveBase64Image(generatedUrl, tempId);
-      } else if (generatedUrl && generatedUrl.startsWith('http')) {
-        const tempId = Math.random().toString(36).substring(2, 10);
-        finalUrl = await downloadAndSaveImage(generatedUrl, tempId);
-      } else {
-        finalUrl = generatedUrl;
-      }
-    }
+    // Persist to Cloudinary (or return raw URL if not configured) — no disk writes
+    console.log('Persisting AI generated image...');
+    const finalUrl = await persistGeneratedImage(generatedUrl);
 
     // Save URL in Prisma Poster table
     const poster = await prisma.poster.create({

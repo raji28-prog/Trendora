@@ -412,11 +412,11 @@ export const Businesses = () => {
       {/* Add Business Modal */}
       <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Add Local Business">
         <form onSubmit={handleCreateSubmit} className="flex flex-col gap-4">
-          <Input label="Business Name *" type="text" placeholder="e.g. Trendora Bakery" value={name} onChange={(e) => setName(e.target.value)} required />
-          <Input label="Category *" type="text" placeholder="e.g. Restaurant, Bakery, Retail" value={category} onChange={(e) => setCategory(e.target.value)} required />
-          <Input label="Address *" type="text" placeholder="Street Address, City, State" value={address} onChange={(e) => setAddress(e.target.value)} required />
-          <Input label="Phone Number *" type="text" placeholder="e.g. 555-0199" value={phone} onChange={(e) => setPhone(e.target.value)} required />
-          <Input label="Website Address" type="text" placeholder="e.g. trendorabakery.com" value={website} onChange={(e) => setWebsite(e.target.value)} />
+          <Input label="Business Name *" type="text" placeholder="e.g. Trendora Bakery" icon={Building} value={name} onChange={(e) => setName(e.target.value)} required />
+          <Input label="Category *" type="text" placeholder="e.g. Restaurant, Bakery, Retail" icon={Building} value={category} onChange={(e) => setCategory(e.target.value)} required />
+          <Input label="Address *" type="text" placeholder="Street Address, City, State" icon={MapPin} value={address} onChange={(e) => setAddress(e.target.value)} required />
+          <Input label="Phone Number *" type="text" placeholder="e.g. 555-0199" icon={Phone} value={phone} onChange={(e) => setPhone(e.target.value)} required />
+          <Input label="Website Address" type="text" placeholder="e.g. trendorabakery.com" icon={Globe} value={website} onChange={(e) => setWebsite(e.target.value)} />
           
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-textSecondary">Upload Images</label>
@@ -488,11 +488,11 @@ export const Businesses = () => {
       {/* Edit Business Modal */}
       <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} title="Edit Local Business">
         <form onSubmit={handleEditSubmit} className="flex flex-col gap-4">
-          <Input label="Business Name *" type="text" value={name} onChange={(e) => setName(e.target.value)} required />
-          <Input label="Category *" type="text" value={category} onChange={(e) => setCategory(e.target.value)} required />
-          <Input label="Address *" type="text" value={address} onChange={(e) => setAddress(e.target.value)} required />
-          <Input label="Phone Number *" type="text" value={phone} onChange={(e) => setPhone(e.target.value)} required />
-          <Input label="Website Address" type="text" value={website} onChange={(e) => setWebsite(e.target.value)} />
+          <Input label="Business Name *" type="text" icon={Building} value={name} onChange={(e) => setName(e.target.value)} required />
+          <Input label="Category *" type="text" icon={Building} value={category} onChange={(e) => setCategory(e.target.value)} required />
+          <Input label="Address *" type="text" icon={MapPin} value={address} onChange={(e) => setAddress(e.target.value)} required />
+          <Input label="Phone Number *" type="text" icon={Phone} value={phone} onChange={(e) => setPhone(e.target.value)} required />
+          <Input label="Website Address" type="text" icon={Globe} value={website} onChange={(e) => setWebsite(e.target.value)} />
           
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-textSecondary">Upload Images</label>

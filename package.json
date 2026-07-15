@@ -12,7 +12,8 @@
     "build:frontend": "npm run build -w frontend",
     "test:backend": "npm run test -w backend",
     "prisma:generate": "npm run prisma:generate -w backend",
-    "prisma:migrate": "npm run prisma:migrate -w backend"
+    "prisma:migrate": "npm run prisma:migrate -w backend",
+    "vercel-build": "cd backend && npx prisma generate && cd ../frontend && npm run build"
   },
   "devDependencies": {
     "pino-pretty": "^13.1.3"

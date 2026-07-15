@@ -404,3 +404,56 @@
 .glow-lg {
   box-shadow: 0 0 40px rgba(124, 58, 237, 0.5);
 }
+
+/* ══════════════════════════════════════════════════════════════
+   PROMOTION BADGE ANIMATIONS & COLLAPSIBLE FADE IN
+   ══════════════════════════════════════════════════════════════ */
+@keyframes badgeFadeIn {
+  from { opacity: 0; }
+  to { opacity: var(--badge-opacity, 1); }
+}
+
+@keyframes badgeScaleIn {
+  from { opacity: 0; transform: scale(0.3); }
+  to { opacity: var(--badge-opacity, 1); transform: scale(1); }
+}
+
+@keyframes badgeSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: var(--badge-opacity, 1); transform: translateY(0); }
+}
+
+@keyframes badgeGlowPulse {
+  0% {
+    box-shadow: 0 0 4px var(--badge-color, rgba(124, 58, 237, 0.4)), inset 0 0 2px var(--badge-color, rgba(124, 58, 237, 0.4));
+  }
+  100% {
+    box-shadow: 0 0 16px var(--badge-color, rgba(124, 58, 237, 0.8)), 0 0 4px var(--badge-color, rgba(124, 58, 237, 0.8));
+  }
+}
+
+.animate-badge-fadeIn {
+  animation: badgeFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-badge-scaleIn {
+  animation: badgeScaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-badge-slide {
+  animation: badgeSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-badge-glowPulse {
+  animation: badgeScaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards, badgeGlowPulse 2s infinite alternate ease-in-out 0.4s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+

@@ -1,25 +1,5 @@
 import prisma from '../database/prisma.js';
-import fs from 'fs';
-import path from 'path';
-import { uploadToCloudinary } from '../config/cloudinary.js';
-
-// Helper to save base64 image strings locally
-const saveBase64Image = (base64Str, id) => {
-  if (!base64Str || !base64Str.startsWith('data:image')) return base64Str;
-  const dir = path.join(process.cwd(), 'uploads');
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-  const matches = base64Str.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-  if (!matches || matches.length !== 3) return null;
-  const ext = matches[1].split('/')[1] || 'png';
-  const base64Data = matches[2];
-  const buffer = Buffer.from(base64Data, 'base64');
-  const filename = `business-${id}-${Date.now()}.${ext}`;
-  const filePath = path.join(dir, filename);
-  fs.writeFileSync(filePath, buffer);
-  return `/uploads/${filename}`;
-};
+import { uploadToCloudinary, isCloudinaryConfigured } from '../config/cloudinary.js';
 
 // Parse images Json from DB helper
 const parseImages = (item) => {
@@ -75,6 +55,55 @@ const mockBusinesses = [
   }
 ];
 
+/**
+ * Upload a set of images to Cloudinary (or return null if not configured).
+ * Accepts:
+ *  - multer memoryStorage files (req.files) — uses file.buffer
+ *  - base64 data URI strings
+ *
+ * No local filesystem operations are performed.
+ */
+const uploadImagesToCloudinary = async (files = [], base64Images = []) => {
+  const savedUrls = [];
+
+  if (!isCloudinaryConfigured()) {
+    // Cloudinary not configured — return raw base64 URLs as fallback
+    for (const img of base64Images) {
+      if (typeof img === 'string' && img.startsWith('data:image')) {
+        savedUrls.push(img); // stored as-is in MongoDB
+      }
+    }
+    return savedUrls;
+  }
+
+  // Upload multer buffer files
+  for (const file of files) {
+    if (file.buffer) {
+      try {
+        const url = await uploadToCloudinary(file.buffer, { folder: 'trendora_businesses' });
+        if (url) savedUrls.push(url);
+      } catch (err) {
+        console.error('Cloudinary buffer upload failed:', err.message);
+      }
+    }
+  }
+
+  // Upload base64 images
+  for (const img of base64Images) {
+    if (typeof img === 'string' && img.startsWith('data:image')) {
+      try {
+        const url = await uploadToCloudinary(img, { folder: 'trendora_businesses' });
+        if (url) savedUrls.push(url);
+      } catch (err) {
+        console.error('Cloudinary base64 upload failed:', err.message);
+        savedUrls.push(img); // fallback: store base64 directly
+      }
+    }
+  }
+
+  return savedUrls;
+};
+
 // GET /api/businesses — return only the authenticated user's businesses
 export const getAll = async (req, res, next) => {
   try {
@@ -92,7 +121,7 @@ export const getAll = async (req, res, next) => {
   }
 };
 
-// GET /api/businesses/mine — return the user's single primary business (used for onboarding check)
+// GET /api/businesses/mine — return the user's single primary business
 export const getMine = async (req, res, next) => {
   try {
     const biz = await prisma.business.findFirst({
@@ -121,7 +150,6 @@ export const getOne = async (req, res, next) => {
       }
       return res.status(404).json({ success: false, error: { message: 'Business not found' } });
     }
-    // Ownership check
     if (biz.ownerId !== req.user.id) {
       return res.status(403).json({ success: false, error: { message: 'Forbidden: You do not own this business' } });
     }
@@ -136,81 +164,19 @@ export const getOne = async (req, res, next) => {
   }
 };
 
-// Helper to upload files/base64 to Cloudinary and cleanup local files
-const uploadAndCleanLocalFiles = async (files, base64Images) => {
-  const filePaths = [];
-  
-  // 1. Files from Multer
-  if (files && files.length > 0) {
-    for (const file of files) {
-      filePaths.push(file.path);
-    }
-  }
-
-  // 2. Base64 images
-  if (base64Images) {
-    const imgs = Array.isArray(base64Images) ? base64Images : [base64Images];
-    for (const img of imgs) {
-      if (typeof img === 'string' && img.startsWith('data:image')) {
-        const dir = path.join(process.cwd(), 'uploads');
-        if (!fs.existsSync(dir)) {
-          fs.mkdirSync(dir, { recursive: true });
-        }
-        const matches = img.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-        if (matches && matches.length === 3) {
-          const ext = matches[1].split('/')[1] || 'png';
-          const base64Data = matches[2];
-          const buffer = Buffer.from(base64Data, 'base64');
-          const filename = `temp-upload-${Date.now()}-${Math.round(Math.random() * 1e9)}.${ext}`;
-          const filePath = path.join(dir, filename);
-          fs.writeFileSync(filePath, buffer);
-          filePaths.push(filePath);
-        }
-      }
-    }
-  }
-
-  const savedUrls = [];
-  try {
-    for (const filePath of filePaths) {
-      const secureUrl = await uploadToCloudinary(filePath);
-      savedUrls.push(secureUrl);
-      // Delete temporary file on success
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-    }
-    return savedUrls;
-  } catch (error) {
-    // If any upload fails, delete all files
-    for (const filePath of filePaths) {
-      if (fs.existsSync(filePath)) {
-        try {
-          fs.unlinkSync(filePath);
-        } catch (cleanupErr) {
-          console.error('Failed to delete temp file on error cleanup:', cleanupErr);
-        }
-      }
-    }
-    throw error;
-  }
-};
-
-// POST /api/businesses — create a business owned by the authenticated user
+// POST /api/businesses — create a business
 export const create = async (req, res, next) => {
   try {
     const { name, category, address, phone, website, status } = req.body;
 
-    // Check if there are base64 images in body
+    // Collect base64 images from body
     let base64Images = [];
     if (req.body.images) {
       const imgs = Array.isArray(req.body.images) ? req.body.images : [req.body.images];
       base64Images = imgs.filter(img => typeof img === 'string' && img.startsWith('data:image'));
     }
 
-    // Save images to Cloudinary (uploaded files + body base64 strings)
-    const savedUrls = await uploadAndCleanLocalFiles(req.files || [], base64Images);
-    const filteredUrls = savedUrls.filter(Boolean);
+    const savedUrls = await uploadImagesToCloudinary(req.files || [], base64Images);
 
     const biz = await prisma.business.create({
       data: {
@@ -219,16 +185,13 @@ export const create = async (req, res, next) => {
         address,
         phone,
         website,
-        images: filteredUrls,
+        images: savedUrls,
         status: status || 'ACTIVE',
-        ownerId: req.user.id,  // ← Ownership: link to authenticated user
+        ownerId: req.user.id,
       },
     });
 
-    res.status(201).json({
-      success: true,
-      data: { ...biz, images: filteredUrls },
-    });
+    res.status(201).json({ success: true, data: { ...biz, images: savedUrls } });
   } catch (err) {
     next(err);
   }
@@ -244,47 +207,37 @@ export const update = async (req, res, next) => {
     if (!existing) {
       return res.status(404).json({ success: false, error: { message: 'Business not found' } });
     }
-
-    // Ownership check — only the owner may update
     if (existing.ownerId !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        error: { statusCode: 403, message: 'Forbidden: You do not own this business' },
-      });
+      return res.status(403).json({ success: false, error: { statusCode: 403, message: 'Forbidden: You do not own this business' } });
     }
 
-    // Extract existing image URLs vs new base64 images
+    // Separate existing URLs from new base64 images
     let existingUrls = [];
     let base64Images = [];
 
-    // Check req.body.existingImages (typically from FormData)
     if (req.body.existingImages) {
       const extImgs = Array.isArray(req.body.existingImages) ? req.body.existingImages : [req.body.existingImages];
       for (const img of extImgs) {
-        if (typeof img === 'string' && (img.startsWith('http://') || img.startsWith('https://') || img.startsWith('/uploads'))) {
+        if (typeof img === 'string' && (img.startsWith('http://') || img.startsWith('https://'))) {
           existingUrls.push(img);
         }
       }
     }
 
-    // Check req.body.images (could be JSON payload or legacy format)
     if (req.body.images) {
       const imgs = Array.isArray(req.body.images) ? req.body.images : [req.body.images];
       for (const img of imgs) {
         if (typeof img === 'string') {
           if (img.startsWith('data:image')) {
             base64Images.push(img);
-          } else if (img.startsWith('http://') || img.startsWith('https://') || img.startsWith('/uploads')) {
-            if (!existingUrls.includes(img)) {
-              existingUrls.push(img);
-            }
+          } else if (img.startsWith('http://') || img.startsWith('https://')) {
+            if (!existingUrls.includes(img)) existingUrls.push(img);
           }
         }
       }
     }
 
-    // Upload new files (from Multer and base64)
-    const newUrls = await uploadAndCleanLocalFiles(req.files || [], base64Images);
+    const newUrls = await uploadImagesToCloudinary(req.files || [], base64Images);
     const filteredUrls = [...existingUrls, ...newUrls];
 
     const biz = await prisma.business.update({
@@ -298,24 +251,17 @@ export const update = async (req, res, next) => {
   }
 };
 
-// DELETE /api/businesses/:id — delete only if the authenticated user owns it
+// DELETE /api/businesses/:id
 export const remove = async (req, res, next) => {
   try {
     const { id } = req.params;
-
     const existing = await prisma.business.findUnique({ where: { id } });
     if (!existing) {
       return res.status(404).json({ success: false, error: { message: 'Business not found' } });
     }
-
-    // Ownership check
     if (existing.ownerId !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        error: { statusCode: 403, message: 'Forbidden: You do not own this business' },
-      });
+      return res.status(403).json({ success: false, error: { statusCode: 403, message: 'Forbidden: You do not own this business' } });
     }
-
     await prisma.business.delete({ where: { id } });
     res.json({ success: true, message: 'Business deleted successfully' });
   } catch (err) {

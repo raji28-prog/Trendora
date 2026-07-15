@@ -1,24 +1,40 @@
 import prisma from '../database/prisma.js';
-import fs from 'fs';
-import path from 'path';
-import { uploadToCloudinary } from '../config/cloudinary.js';
+import { uploadToCloudinary, isCloudinaryConfigured } from '../config/cloudinary.js';
 
-// Helper to save base64 image strings locally
-const saveBase64Image = (base64Str, id) => {
-  if (!base64Str || !base64Str.startsWith('data:image')) return base64Str;
-  const dir = path.join(process.cwd(), 'uploads');
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+/**
+ * Upload a base64 image to Cloudinary or return the raw value as a fallback.
+ * No filesystem operations — pure in-memory / Cloudinary.
+ */
+const persistImage = async (imageUrl) => {
+  if (!imageUrl) return null;
+
+  // Already a hosted URL — return as-is
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    if (isCloudinaryConfigured()) {
+      try {
+        return await uploadToCloudinary(imageUrl, { folder: 'trendora_posters' });
+      } catch (err) {
+        console.warn('Cloudinary re-upload failed, using original URL:', err.message);
+        return imageUrl;
+      }
+    }
+    return imageUrl;
   }
-  const matches = base64Str.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-  if (!matches || matches.length !== 3) return null;
-  const ext = matches[1].split('/')[1] || 'png';
-  const base64Data = matches[2];
-  const buffer = Buffer.from(base64Data, 'base64');
-  const filename = `poster-${id}-${Date.now()}.${ext}`;
-  const filePath = path.join(dir, filename);
-  fs.writeFileSync(filePath, buffer);
-  return `/uploads/${filename}`;
+
+  // base64 data URI
+  if (imageUrl.startsWith('data:image')) {
+    if (isCloudinaryConfigured()) {
+      try {
+        return await uploadToCloudinary(imageUrl, { folder: 'trendora_posters' });
+      } catch (err) {
+        console.warn('Cloudinary base64 upload failed, storing raw base64:', err.message);
+        return imageUrl; // store as-is — no disk write needed
+      }
+    }
+    return imageUrl; // store as-is when Cloudinary not configured
+  }
+
+  return imageUrl;
 };
 
 export const getAll = async (req, res, next) => {
@@ -41,31 +57,22 @@ export const create = async (req, res, next) => {
   try {
     const { title, imageUrl, format, businessId, campaignId } = req.body;
     let targetBizId = businessId;
+
     if (!targetBizId) {
-      const firstBiz = await prisma.business.findFirst({
-        where: { ownerId: req.user.id }
-      });
+      const firstBiz = await prisma.business.findFirst({ where: { ownerId: req.user.id } });
       if (firstBiz) {
         targetBizId = firstBiz.id;
       } else {
         return res.status(400).json({ success: false, error: { message: 'Business profile required.' } });
       }
     } else {
-      const biz = await prisma.business.findFirst({
-        where: { id: targetBizId, ownerId: req.user.id }
-      });
+      const biz = await prisma.business.findFirst({ where: { id: targetBizId, ownerId: req.user.id } });
       if (!biz) {
         return res.status(403).json({ success: false, error: { message: 'Forbidden: You do not own this business' } });
       }
     }
 
-    let savedUrl = imageUrl;
-    if (imageUrl && imageUrl.startsWith('data:image')) {
-      savedUrl = await uploadToCloudinary(imageUrl);
-    } else {
-      const tempId = Math.random().toString(36).substring(2, 10);
-      savedUrl = saveBase64Image(imageUrl, tempId);
-    }
+    const savedUrl = await persistImage(imageUrl);
 
     const item = await prisma.poster.create({
       data: {
@@ -76,6 +83,7 @@ export const create = async (req, res, next) => {
         campaignId
       }
     });
+
     res.status(201).json({ success: true, data: item });
   } catch (err) {
     next(err);

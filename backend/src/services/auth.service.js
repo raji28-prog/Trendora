@@ -1,6 +1,5 @@
 import bcrypt from 'bcryptjs';
-import fs from 'fs';
-import path from 'path';
+import { uploadToCloudinary, isCloudinaryConfigured } from '../config/cloudinary.js';
 import UserRepository from '../repositories/user.repository.js';
 import TokenRepository from '../repositories/token.repository.js';
 import ResetTokenRepository from '../repositories/resetToken.repository.js';
@@ -230,19 +229,17 @@ export class AuthService {
     if (phone !== undefined) data.phone = phone;
     
     if (profileImage && profileImage.startsWith('data:image')) {
-      const dir = path.join(process.cwd(), 'uploads');
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      const matches = profileImage.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-      if (matches && matches.length === 3) {
-        const ext = matches[1].split('/')[1] || 'png';
-        const base64Data = matches[2];
-        const buffer = Buffer.from(base64Data, 'base64');
-        const filename = `${userId}-${Date.now()}.${ext}`;
-        const filePath = path.join(dir, filename);
-        fs.writeFileSync(filePath, buffer);
-        data.profileImage = `/api/auth/uploads/${filename}`;
+      // Upload profile image to Cloudinary (no local disk writes)
+      if (isCloudinaryConfigured()) {
+        try {
+          const url = await uploadToCloudinary(profileImage, { folder: 'trendora_profiles' });
+          if (url) data.profileImage = url;
+        } catch (err) {
+          console.warn('Cloudinary profile image upload failed, storing as-is:', err.message);
+          data.profileImage = profileImage; // fallback: store base64 in DB
+        }
+      } else {
+        data.profileImage = profileImage; // store base64 directly when Cloudinary not configured
       }
     } else if (profileImage !== undefined) {
       data.profileImage = profileImage;
