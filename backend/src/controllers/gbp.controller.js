@@ -5,7 +5,43 @@ import prisma from '../database/prisma.js';
 
 export const getProfile = async (req, res, next) => {
   try {
-    const business = await prisma.business.findFirst();
+    const { businessId } = req.query;
+    const query = { ownerId: req.user.id };
+    if (businessId) {
+      query.id = businessId;
+    }
+
+    let business = null;
+    try {
+      business = await prisma.business.findFirst({
+        where: query
+      });
+    } catch (dbErr) {
+      const isConnectionError =
+        dbErr.constructor?.name === 'PrismaClientInitializationError' ||
+        dbErr.code === 'P2010' ||
+        (dbErr.message && (
+          dbErr.message.includes('Server selection timeout') ||
+          dbErr.message.includes('No available servers') ||
+          dbErr.message.includes('failed to connect') ||
+          dbErr.message.includes('Database connection')
+        ));
+      
+      if (isConnectionError && (process.env.DEVELOPMENT_MODE === 'true' || process.env.DEVELOPMENT_MODE === '1')) {
+        console.warn('⚠️ MongoDB Offline: Returning fallback mock GBP profile in development mode');
+        // Synthesize mock business values for GBP data
+        business = {
+          id: businessId || 'mock-biz-id-1',
+          name: 'Trendora Cafe',
+          address: '123 Premium Lane, Coffee District',
+          phone: '+1 (555) 019-2834',
+          website: 'https://trendoracafe.com'
+        };
+      } else {
+        throw dbErr;
+      }
+    }
+
     if (!business) {
       return res.json({ success: true, data: null });
     }

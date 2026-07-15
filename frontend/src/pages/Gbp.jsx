@@ -1,123 +1,225 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useSelectedBusiness } from '../store/useSelectedBusiness.js';
+import Card from '../components/UI/Card.jsx';
+import Button from '../components/UI/Button.jsx';
+import Badge from '../components/UI/Badge.jsx';
+import Spinner from '../components/UI/Spinner.jsx';
+import EmptyState from '../components/UI/EmptyState.jsx';
+import { Globe, MapPin, Phone, RefreshCw, Compass } from 'lucide-react';
 
 export default function Gbp() {
+  const navigate = useNavigate();
+  const { selectedBusinessId, selectedBusiness, businesses } = useSelectedBusiness();
+
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState('');
 
-  const load = async () => {
+  const load = async (id) => {
+    if (!id) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      const res = await api.get('/api/gbp');
+      const res = await api.get(`/api/gbp?businessId=${id}`);
       setData(res.data.data);
     } catch { /* ignore */ }
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load(selectedBusinessId);
+  }, [selectedBusinessId]);
 
   const handleSync = async () => {
+    if (!selectedBusinessId) return;
     setSyncing(true);
     try {
       const res = await api.put('/api/gbp');
       setSyncMsg('✓ Synced successfully at ' + new Date(res.data.data.syncedAt).toLocaleTimeString());
       setTimeout(() => setSyncMsg(''), 4000);
+      load(selectedBusinessId);
     } catch { setSyncMsg('Sync failed'); }
     setSyncing(false);
   };
 
-  if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: '#94A3B8', fontFamily: "'Inter', sans-serif" }}>Loading...</div>;
+  if (!selectedBusinessId) {
+    return (
+      <div className="flex-1 flex flex-col gap-6 w-full max-w-4xl mx-auto py-8 pb-16">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-widest">
+            <Compass className="w-4 h-4 text-purple-400" /> Google Integration
+          </div>
+          <h1 className="text-3xl font-black text-white tracking-tight">Google Business Profile</h1>
+          <p className="text-xs text-textSecondary">Monitor your Google listing performance and sync updates.</p>
+        </div>
+
+        <Card className="text-center p-12 flex flex-col items-center justify-center gap-4">
+          <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-full text-purple-400">
+            <Globe className="w-10 h-10" />
+          </div>
+          {businesses.length === 0 ? (
+            <>
+              <h3 className="text-xl font-bold text-white tracking-tight">No Businesses Found</h3>
+              <p className="text-sm text-textSecondary max-w-sm leading-relaxed">Create your first business to connect with Google Business Profile.</p>
+              <Button variant="primary" className="mt-2" onClick={() => navigate('/businesses')}>
+                + Add Business
+              </Button>
+            </>
+          ) : (
+            <>
+              <h3 className="text-xl font-bold text-white tracking-tight">No Business Selected</h3>
+              <p className="text-sm text-textSecondary max-w-sm leading-relaxed">
+                Use the business selector in the header to choose which business to view.
+              </p>
+            </>
+          )}
+        </Card>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh] gap-3">
+        <Spinner size="lg" />
+        <span className="text-sm text-textSecondary font-semibold font-sans">Connecting Google services...</span>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ padding: '32px', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+    <div className="flex-1 flex flex-col gap-6 w-full max-w-4xl mx-auto py-8 pb-16">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ width: '36px', height: '36px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#4285F4', borderRadius: '8px', fontSize: '20px' }}>G</span>
-            Google Business Profile
-          </h1>
-          <p style={{ color: '#64748B', marginTop: '4px', fontSize: '14px' }}>Monitor your Google listing performance and sync updates</p>
+          <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-widest">
+            <Compass className="w-4 h-4 text-purple-400" /> Google Integration
+          </div>
+          <h1 className="text-3xl font-black text-white tracking-tight">Google Business Profile</h1>
+          <p className="text-xs text-textSecondary">
+            Monitoring listing for <strong className="text-white">{selectedBusiness?.name}</strong>
+          </p>
         </div>
-        <button onClick={handleSync} disabled={syncing} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: syncing ? '#A5B4FC' : '#4285F4', color: '#fff', fontWeight: 600, cursor: syncing ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
-          {syncing ? '⟳ Syncing...' : '🔄 Sync Profile'}
-        </button>
+        <Button onClick={handleSync} isLoading={syncing} icon={RefreshCw}>
+          {syncing ? 'Syncing...' : 'Sync Profile'}
+        </Button>
       </div>
 
-      {syncMsg && <div style={{ background: '#F0FFF4', border: '1px solid #BBF7D0', color: '#16A34A', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px' }}>{syncMsg}</div>}
+      {syncMsg && (
+        <div className="px-4 py-3 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-xs font-semibold">
+          {syncMsg}
+        </div>
+      )}
 
       {!data ? (
-        <div style={{ textAlign: 'center', padding: '80px', background: '#fff', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
-          <div style={{ fontSize: '64px', marginBottom: '16px' }}>🗺️</div>
-          <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A' }}>No Business Profile Connected</h3>
-          <p style={{ color: '#64748B' }}>Add a business first, then sync your Google profile.</p>
-        </div>
+        <EmptyState
+          icon={Globe}
+          title="No Business Profile Connected"
+          description="Add a business first, then sync your Google profile."
+        />
       ) : (
         <>
           {/* Verification Banner */}
-          <div style={{ background: 'linear-gradient(135deg, #4285F4, #34A853)', borderRadius: '16px', padding: '24px 32px', marginBottom: '24px', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h2 style={{ fontSize: '22px', fontWeight: 800, margin: 0 }}>{data.businessName}</h2>
-              <p style={{ margin: '4px 0 0', opacity: 0.85, fontSize: '14px' }}>📍 {data.address} · 📞 {data.phone}</p>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ background: 'rgba(255,255,255,0.2)', padding: '8px 16px', borderRadius: '20px', fontSize: '13px', fontWeight: 700 }}>
-                ✅ {data.verificationStatus}
+          <div
+            className="rounded-[24px] p-6 md:p-8 text-white flex flex-col md:flex-row justify-between items-center gap-6 relative overflow-hidden"
+            style={{
+              background: 'linear-gradient(135deg, #4285F4 0%, #34A853 100%)',
+              boxShadow: '0 8px 32px rgba(66, 133, 244, 0.25)',
+            }}
+          >
+            <div className="absolute top-0 left-0 right-0 h-[1px] bg-white/20" />
+            <div className="text-center md:text-left">
+              <h2 className="text-2xl font-black tracking-tight">{data.businessName}</h2>
+              <div className="flex flex-wrap gap-x-4 gap-y-2 mt-2 text-xs opacity-90 font-medium justify-center md:justify-start">
+                <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {data.address}</span>
+                <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5" /> {data.phone}</span>
               </div>
-              <div style={{ fontSize: '12px', opacity: 0.75, marginTop: '4px' }}>Last synced: {new Date(data.lastSyncedAt).toLocaleString()}</div>
+            </div>
+            <div className="text-center">
+              <Badge variant="success" className="uppercase font-bold tracking-widest mb-1">{data.verificationStatus}</Badge>
+              <div className="text-[10px] opacity-75 mt-1 font-semibold">Last synced: {new Date(data.lastSyncedAt).toLocaleString()}</div>
             </div>
           </div>
 
-          {/* Rating Card */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+          {/* Rating Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
             {[
-              { label: 'Star Rating', value: `⭐ ${data.rating}`, sub: `${data.totalReviews} reviews`, color: '#F59E0B', bg: '#FFFBF0' },
-              { label: 'Monthly Views', value: data.views?.thisMonth?.toLocaleString(), sub: `↑ vs ${data.views?.lastMonth?.toLocaleString()} last mo`, color: '#6D5EF8', bg: '#F0F4FF' },
-              { label: 'Website Clicks', value: data.actions?.websiteClicks, sub: 'this month', color: '#22C55E', bg: '#F0FFF4' },
-              { label: 'Direction Requests', value: data.actions?.directionRequests, sub: 'this month', color: '#3B82F6', bg: '#EFF6FF' }
-            ].map(stat => (
-              <div key={stat.label} style={{ background: stat.bg, borderRadius: '12px', padding: '20px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                <div style={{ fontSize: '28px', fontWeight: 800, color: stat.color }}>{stat.value}</div>
-                <div style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px' }}>{stat.sub}</div>
-                <div style={{ fontSize: '12px', color: '#374151', fontWeight: 600, marginTop: '8px' }}>{stat.label}</div>
-              </div>
+              { label: 'Star Rating', value: `⭐ ${data.rating}`, sub: `${data.totalReviews} reviews`, color: 'text-amber-400', bg: 'rgba(245,158,11,0.06)', border: 'rgba(245,158,11,0.2)' },
+              { label: 'Monthly Views', value: data.views?.thisMonth?.toLocaleString(), sub: `↑ vs ${data.views?.lastMonth?.toLocaleString()} last mo`, color: 'text-purple-400', bg: 'rgba(124,58,237,0.06)', border: 'rgba(124,58,237,0.2)' },
+              { label: 'Website Clicks', value: data.actions?.websiteClicks, sub: 'this month', color: 'text-emerald-400', bg: 'rgba(16,185,129,0.06)', border: 'rgba(16,185,129,0.2)' },
+              { label: 'Direction Requests', value: data.actions?.directionRequests, sub: 'this month', color: 'text-blue-400', bg: 'rgba(59,130,246,0.06)', border: 'rgba(59,130,246,0.2)' }
+            ].map((stat, idx) => (
+              <Card key={idx}>
+                <Card.Content className="p-5 flex flex-col gap-2">
+                  <span className="text-[10px] text-textSecondary uppercase tracking-widest font-semibold">{stat.label}</span>
+                  <span className={`text-2xl font-black ${stat.color} leading-none tracking-tight`}>{stat.value}</span>
+                  <span className="text-[11px] text-textSecondary font-medium leading-none">{stat.sub}</span>
+                </Card.Content>
+              </Card>
             ))}
           </div>
 
           {/* Search Analytics */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-            <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid #E2E8F0' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A', marginBottom: '20px' }}>How Customers Find You</h3>
-              {[
-                { label: 'Direct Searches', value: data.searches?.direct, total: data.searches?.direct + data.searches?.discovery, color: '#6D5EF8' },
-                { label: 'Discovery Searches', value: data.searches?.discovery, total: data.searches?.direct + data.searches?.discovery, color: '#22C55E' }
-              ].map(item => (
-                <div key={item.label} style={{ marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '13px', color: '#374151', fontWeight: 500 }}>{item.label}</span>
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: item.color }}>{item.value}</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <Card.Header>
+                <Card.Title>How Customers Find You</Card.Title>
+              </Card.Header>
+              <Card.Content className="p-6 flex flex-col gap-4">
+                {[
+                  { label: 'Direct Searches', value: data.searches?.direct, total: data.searches?.direct + data.searches?.discovery, color: '#7C3AED' },
+                  { label: 'Discovery Searches', value: data.searches?.discovery, total: data.searches?.direct + data.searches?.discovery, color: '#10B981' }
+                ].map((item, idx) => (
+                  <div key={idx} className="flex flex-col gap-1.5">
+                    <div className="flex justify-between text-xs font-semibold">
+                      <span className="text-textSecondary">{item.label}</span>
+                      <span style={{ color: item.color }}>{item.value}</span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-white/[0.04] overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          background: item.color,
+                          width: `${Math.round(item.value / item.total * 100)}%`,
+                          transition: 'width 0.8s ease'
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div style={{ background: '#F1F5F9', borderRadius: '4px', height: '8px', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', background: item.color, width: `${Math.round(item.value / item.total * 100)}%`, borderRadius: '4px', transition: 'width 0.8s ease' }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid #E2E8F0' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A', marginBottom: '20px' }}>Customer Actions</h3>
-              {[
-                { label: 'Website Clicks', value: data.actions?.websiteClicks, icon: '🌐', color: '#6D5EF8' },
-                { label: 'Phone Calls', value: data.actions?.callClicks, icon: '📞', color: '#22C55E' },
-                { label: 'Direction Requests', value: data.actions?.directionRequests, icon: '📍', color: '#F59E0B' }
-              ].map(item => (
-                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid #F1F5F9' }}>
-                  <span style={{ fontSize: '22px' }}>{item.icon}</span>
-                  <span style={{ flex: 1, fontSize: '14px', color: '#374151' }}>{item.label}</span>
-                  <span style={{ fontSize: '20px', fontWeight: 800, color: item.color }}>{item.value}</span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </Card.Content>
+            </Card>
+
+            <Card>
+              <Card.Header>
+                <Card.Title>Customer Actions</Card.Title>
+              </Card.Header>
+              <Card.Content className="p-4 flex flex-col gap-2">
+                {[
+                  { label: 'Website Clicks', value: data.actions?.websiteClicks, icon: Globe, color: 'text-purple-400' },
+                  { label: 'Phone Calls', value: data.actions?.callClicks, icon: Phone, color: 'text-emerald-400' },
+                  { label: 'Direction Requests', value: data.actions?.directionRequests, icon: MapPin, color: 'text-amber-400' }
+                ].map((item, idx) => {
+                  const Icon = item.icon;
+                  return (
+                    <div key={idx} className="flex items-center justify-between p-3 rounded-xl hover:bg-white/[0.02] border border-transparent hover:border-white/[0.06] transition-all">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-[10px] bg-white/[0.04]">
+                          <Icon className={`w-4 h-4 ${item.color}`} />
+                        </div>
+                        <span className="text-sm font-semibold text-white">{item.label}</span>
+                      </div>
+                      <span className={`text-lg font-black ${item.color}`}>{item.value}</span>
+                    </div>
+                  );
+                })}
+              </Card.Content>
+            </Card>
           </div>
         </>
       )}

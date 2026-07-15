@@ -5,7 +5,7 @@ import { useDispatch } from 'react-redux';
 import { addToast } from '../store/uiSlice.js';
 import Input from '../components/UI/Input.jsx';
 import Button from '../components/UI/Button.jsx';
-import { Mail } from 'lucide-react';
+import { Mail, CheckCircle2 } from 'lucide-react';
 import api from '../services/api.js';
 
 export const ForgotPassword = () => {
@@ -22,11 +22,7 @@ export const ForgotPassword = () => {
       setSubmitted(true);
       dispatch(addToast({ type: 'success', message: 'Password reset link generated!' }));
       if (response.data.data?.token) {
-        dispatch(addToast({ 
-          type: 'info', 
-          message: `Dev Token: ${response.data.data.token}`,
-          duration: 10000 
-        }));
+        dispatch(addToast({ type: 'info', message: `Dev Token: ${response.data.data.token}`, duration: 10000 }));
       }
     } catch (err) {
       const errMsg = err.response?.data?.error?.message || 'An error occurred. Please try again.';
@@ -38,16 +34,28 @@ export const ForgotPassword = () => {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1.5 text-center">
-        <h2 className="text-2xl font-bold tracking-tight text-textPrimary">Forgot Password</h2>
-        <p className="text-xs text-textSecondary">
+      <div className="flex flex-col gap-2 text-center">
+        <h2 className="text-3xl font-black text-white leading-tight tracking-tight">
+          {submitted ? 'Check Your Email' : 'Forgot Password?'}
+        </h2>
+        <p className="text-xs text-textSecondary leading-relaxed">
           {submitted
-            ? 'Check your inbox for a link to reset your password'
+            ? 'If an account exists for that email, we sent a password reset link.'
             : 'Enter your email address to receive a password reset link'}
         </p>
       </div>
 
-      {!submitted ? (
+      {submitted ? (
+        <div
+          className="flex flex-col items-center gap-4 p-6 rounded-[16px] text-center"
+          style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)' }}
+        >
+          <CheckCircle2 className="w-10 h-10 text-emerald-400" />
+          <p className="text-sm text-textSecondary">
+            Check your inbox and follow the instructions to reset your password.
+          </p>
+        </div>
+      ) : (
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <Input
             label="Email Address"
@@ -60,23 +68,24 @@ export const ForgotPassword = () => {
               pattern: { value: /^\S+@\S+$/i, message: 'Invalid email address' },
             })}
           />
-
-          <Button type="submit" isLoading={loading} className="w-full mt-2">
+          <Button type="submit" isLoading={loading} className="w-full mt-1">
             Send Reset Link
           </Button>
         </form>
-      ) : (
-        <div className="text-center p-4 bg-background/50 border border-border rounded-lg text-xs text-textSecondary">
-          If an account exists for that email, we sent a password reset link.
-        </div>
       )}
 
-      <div className="text-center text-xs text-textSecondary">
+      <p className="text-center text-xs text-textSecondary">
         Remember your password?{' '}
-        <Link to="/login" className="font-semibold text-primary hover:underline">
+        <Link
+          to="/login"
+          className="font-bold transition-colors"
+          style={{ color: '#8B5CF6' }}
+          onMouseEnter={(e) => e.target.style.color = '#A855F7'}
+          onMouseLeave={(e) => e.target.style.color = '#8B5CF6'}
+        >
           Sign In
         </Link>
-      </div>
+      </p>
     </div>
   );
 };

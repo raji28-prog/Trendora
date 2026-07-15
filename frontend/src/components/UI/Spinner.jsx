@@ -7,13 +7,16 @@ export const Spinner = ({
 }) => {
   const sizes = {
     sm: 'w-4 h-4',
-    md: 'w-8 h-8',
-    lg: 'w-12 h-12',
+    md: 'w-7 h-7',
+    lg: 'w-11 h-11',
   };
 
   return (
     <div className={`flex items-center justify-center p-4 ${className}`}>
-      <Loader2 className={`animate-spin text-primary ${sizes[size]}`} />
+      <Loader2
+        className={`animate-spin ${sizes[size]}`}
+        style={{ color: '#8B5CF6', filter: 'drop-shadow(0 0 8px rgba(139,92,246,0.6))' }}
+      />
     </div>
   );
 };

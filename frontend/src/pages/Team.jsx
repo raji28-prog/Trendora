@@ -1,8 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import Card from '../components/UI/Card.jsx';
+import Button from '../components/UI/Button.jsx';
+import Badge from '../components/UI/Badge.jsx';
+import Spinner from '../components/UI/Spinner.jsx';
+import EmptyState from '../components/UI/EmptyState.jsx';
+import Table from '../components/UI/Table.jsx';
+import Modal from '../components/UI/Modal.jsx';
+import Input from '../components/UI/Input.jsx';
+import Select from '../components/UI/Select.jsx';
+import { Users, Mail, Plus, Edit2, Trash2, Calendar, ShieldCheck, UserPlus } from 'lucide-react';
 
 const ROLES = ['ADMIN', 'MANAGER', 'EDITOR'];
-const ROLE_COLORS = { ADMIN: { bg: '#FEF2F2', color: '#DC2626', border: '#FECACA' }, MANAGER: { bg: '#FFF8F0', color: '#D97706', border: '#FDE68A' }, EDITOR: { bg: '#EFF6FF', color: '#2563EB', border: '#BFDBFE' } };
+const ROLE_VARIANTS = { ADMIN: 'accent', MANAGER: 'primary', EDITOR: 'neutral' };
 
 export default function Team() {
   const [members, setMembers] = useState([]);
@@ -55,128 +65,166 @@ export default function Team() {
   const roleCounts = ROLES.reduce((acc, r) => ({ ...acc, [r]: members.filter(m => m.role === r).length }), {});
 
   return (
-    <div style={{ padding: '32px', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+    <div className="flex flex-col gap-6 w-full pb-10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#0F172A', margin: 0 }}>Team Management</h1>
-          <p style={{ color: '#64748B', marginTop: '4px', fontSize: '14px' }}>Manage collaborators and control their access permissions</p>
+          <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-widest">
+            <Users className="w-4 h-4 text-purple-400" /> Collaborator Hub
+          </div>
+          <h1 className="text-3xl font-black text-white tracking-tight">Team Management</h1>
+          <p className="text-xs text-textSecondary">Manage collaborators and control their access permissions</p>
         </div>
-        <button onClick={() => { setEditId(null); setForm({ name: '', email: '', role: 'EDITOR', businessId: '' }); setShowModal(true); }} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#6D5EF8', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: '14px' }}>
-          + Invite Member
-        </button>
+        <Button variant="primary" icon={Plus} onClick={() => { setEditId(null); setForm({ name: '', email: '', role: 'EDITOR', businessId: '' }); setShowModal(true); }}>
+          Invite Member
+        </Button>
       </div>
 
-      {error && <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px' }}>{error}</div>}
+      {error && (
+        <div className="px-4 py-3 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 text-xs font-semibold">
+          {error}
+        </div>
+      )}
 
       {/* Role Summary */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '28px' }}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {ROLES.map(role => {
-          const c = ROLE_COLORS[role];
+          const count = roleCounts[role] || 0;
           return (
-            <div key={role} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: '12px', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: c.color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>
-                {role === 'ADMIN' ? '👑' : role === 'MANAGER' ? '📋' : '✏️'}
-              </div>
-              <div>
-                <div style={{ fontSize: '24px', fontWeight: 800, color: c.color }}>{roleCounts[role]}</div>
-                <div style={{ fontSize: '13px', color: '#64748B', fontWeight: 500 }}>{role.charAt(0) + role.slice(1).toLowerCase()}s</div>
-              </div>
-            </div>
+            <Card key={role}>
+              <Card.Content className="p-5 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-[14px] bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-xl shadow-[0_0_12px_rgba(168,85,247,0.15)]">
+                  {role === 'ADMIN' ? '👑' : role === 'MANAGER' ? '📋' : '✏️'}
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-white tracking-tight">{count}</div>
+                  <div className="text-[10px] text-textSecondary uppercase tracking-widest font-semibold">{role.charAt(0) + role.slice(1).toLowerCase()}s</div>
+                </div>
+              </Card.Content>
+            </Card>
           );
         })}
       </div>
 
       {/* Members List */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '60px', color: '#94A3B8' }}>Loading...</div>
+        <div className="flex items-center justify-center min-h-[40vh]">
+          <Spinner size="lg" />
+        </div>
       ) : members.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '80px', background: '#fff', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
-          <div style={{ fontSize: '64px', marginBottom: '16px' }}>👥</div>
-          <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A' }}>No Team Members Yet</h3>
-          <p style={{ color: '#64748B' }}>Invite collaborators to help manage your business</p>
-        </div>
+        <EmptyState
+          icon={Users}
+          title="No Team Members Yet"
+          description="Invite collaborators to help manage your business."
+        />
       ) : (
-        <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                {['Member', 'Email', 'Role', 'Joined', 'Actions'].map(h => (
-                  <th key={h} style={{ textAlign: 'left', padding: '14px 20px', fontSize: '12px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {members.map(member => {
-                const c = ROLE_COLORS[member.role] || ROLE_COLORS.EDITOR;
-                return (
-                  <tr key={member.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.15s' }} onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                    <td style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#E8E4FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 700, color: '#6D5EF8', flexShrink: 0 }}>
-                        {member.name?.charAt(0).toUpperCase()}
-                      </div>
-                      <span style={{ fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>{member.name}</span>
-                    </td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', color: '#64748B' }}>{member.email}</td>
-                    <td style={{ padding: '16px 20px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 700, padding: '4px 12px', borderRadius: '20px', background: c.bg, color: c.color, border: `1px solid ${c.border}` }}>{member.role}</span>
-                    </td>
-                    <td style={{ padding: '16px 20px', fontSize: '13px', color: '#94A3B8' }}>{new Date(member.createdAt).toLocaleDateString()}</td>
-                    <td style={{ padding: '16px 20px' }}>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button onClick={() => openEdit(member)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #E2E8F0', background: '#fff', color: '#374151', fontWeight: 600, cursor: 'pointer', fontSize: '12px' }}>Edit</button>
-                        <button onClick={() => handleDelete(member.id)} style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', background: '#FEF2F2', color: '#DC2626', fontWeight: 600, cursor: 'pointer', fontSize: '12px' }}>Remove</button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <Table.Header>
+            <Table.Row>
+              <Table.Head>Member</Table.Head>
+              <Table.Head>Email</Table.Head>
+              <Table.Head>Role</Table.Head>
+              <Table.Head>Joined</Table.Head>
+              <Table.Head>Actions</Table.Head>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {members.map(member => (
+              <Table.Row key={member.id}>
+                <Table.Cell className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-[10px] bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-neon-sm">
+                    {member.name?.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="font-bold text-white text-sm">{member.name}</span>
+                </Table.Cell>
+                <Table.Cell className="text-textSecondary text-sm">{member.email}</Table.Cell>
+                <Table.Cell>
+                  <Badge variant={ROLE_VARIANTS[member.role]}>{member.role}</Badge>
+                </Table.Cell>
+                <Table.Cell className="text-textSecondary/80 text-xs font-semibold">{new Date(member.createdAt).toLocaleDateString()}</Table.Cell>
+                <Table.Cell>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => openEdit(member)}
+                      className="p-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-textSecondary hover:text-white hover:border-primary/30 transition-all"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(member.id)}
+                      className="p-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-textSecondary hover:text-red-400 hover:border-red-500/30 transition-all"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </Table.Cell>
+              </Table.Row>
+            ))}
+          </Table.Body>
+        </Table>
       )}
 
-      {/* Modal */}
-      {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: '16px', padding: '32px', width: '420px', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#0F172A', marginBottom: '24px' }}>{editId ? 'Edit Member' : 'Invite Team Member'}</h2>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {[['name', 'Full Name'], ['email', 'Email Address']].map(([field, label]) => (
-                <div key={field}>
-                  <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '6px' }}>{label}</label>
-                  <input type={field === 'email' ? 'email' : 'text'} value={form[field]} onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))} required style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-                </div>
-              ))}
-              <div>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '8px' }}>Role</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                  {ROLES.map(role => {
-                    const c = ROLE_COLORS[role];
-                    return (
-                      <button type="button" key={role} onClick={() => setForm(f => ({ ...f, role }))} style={{ padding: '10px 8px', borderRadius: '8px', border: `2px solid ${form.role === role ? c.color : '#E2E8F0'}`, background: form.role === role ? c.bg : '#fff', color: form.role === role ? c.color : '#64748B', fontWeight: 700, cursor: 'pointer', fontSize: '12px' }}>
-                        {role === 'ADMIN' ? '👑' : role === 'MANAGER' ? '📋' : '✏️'}<br />{role}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              {businesses.length > 0 && (
-                <div>
-                  <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '6px' }}>Business</label>
-                  <select value={form.businessId} onChange={e => setForm(f => ({ ...f, businessId: e.target.value }))} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '14px', outline: 'none' }}>
-                    <option value="">Auto-select first business</option>
-                    {businesses.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                  </select>
-                </div>
-              )}
-              <div style={{ display: 'flex', gap: '12px', paddingTop: '8px' }}>
-                <button type="button" onClick={() => setShowModal(false)} style={{ flex: 1, padding: '11px', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#fff', color: '#374151', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-                <button type="submit" style={{ flex: 1, padding: '11px', borderRadius: '8px', border: 'none', background: '#6D5EF8', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>{editId ? 'Save Changes' : 'Send Invite'}</button>
-              </div>
-            </form>
+      {/* Invite Member Modal */}
+      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editId ? 'Edit Team Member' : 'Invite Team Member'}>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <Input
+            label="Full Name"
+            placeholder="John Doe"
+            value={form.name}
+            onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+            required
+          />
+          <Input
+            label="Email Address"
+            type="email"
+            placeholder="john@example.com"
+            value={form.email}
+            onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+            required
+          />
+          
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[10px] font-semibold text-textSecondary uppercase tracking-widest">Role</span>
+            <div className="grid grid-cols-3 gap-3">
+              {ROLES.map(role => {
+                const isSelected = form.role === role;
+                return (
+                  <button
+                    type="button"
+                    key={role}
+                    onClick={() => setForm(f => ({ ...f, role }))}
+                    className={`flex flex-col items-center justify-center p-3 rounded-[12px] border text-xs font-bold transition-all ${
+                      isSelected
+                        ? 'border-primary bg-primary/15 text-white'
+                        : 'border-white/10 bg-white/[0.03] text-textSecondary hover:border-primary/30 hover:text-white'
+                    }`}
+                  >
+                    <span className="text-base mb-1">{role === 'ADMIN' ? '👑' : role === 'MANAGER' ? '📋' : '✏️'}</span>
+                    <span>{role}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+
+          {businesses.length > 0 && (
+            <Select
+              label="Assigned Business Listing"
+              value={form.businessId}
+              onChange={e => setForm(f => ({ ...f, businessId: e.target.value }))}
+              options={[{ value: '', label: 'Auto-select first business' }, ...businesses.map(b => ({ value: b.id, label: b.name }))]}
+            />
+          )}
+
+          <div className="flex gap-3 mt-4">
+            <Button variant="outline" className="flex-1" onClick={() => setShowModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" className="flex-1">
+              {editId ? 'Save Changes' : 'Send Invite'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

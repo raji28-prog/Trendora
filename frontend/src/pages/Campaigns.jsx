@@ -5,9 +5,10 @@ import Input from '../components/UI/Input.jsx';
 import Badge from '../components/UI/Badge.jsx';
 import Modal from '../components/UI/Modal.jsx';
 import EmptyState from '../components/UI/EmptyState.jsx';
+import Select from '../components/UI/Select.jsx';
 import { addToast } from '../store/uiSlice.js';
 import { useDispatch } from 'react-redux';
-import { Plus, Search, Target, Compass, Sparkles } from 'lucide-react';
+import { Plus, Search, Target, Megaphone } from 'lucide-react';
 import api from '../services/api.js';
 
 export const Campaigns = () => {
@@ -85,17 +86,20 @@ export const Campaigns = () => {
   const filteredCamps = campaigns.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
-    <div className="flex flex-col gap-6 w-full">
+    <div className="flex flex-col gap-6 w-full pb-10">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-textPrimary">Campaign Tracking</h1>
+          <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-widest">
+            <Megaphone className="w-4 h-4 text-purple-400" /> Channel Manager
+          </div>
+          <h1 className="text-3xl font-black text-white tracking-tight">Campaign Tracking</h1>
           <p className="text-xs text-textSecondary">Manage and coordinate multi-channel marketing campaigns.</p>
         </div>
         <Button variant="primary" icon={Plus} onClick={() => setIsCreateOpen(true)}>Create Campaign</Button>
       </div>
 
       <Card>
-        <Card.Content className="flex items-center gap-4 py-3">
+        <Card.Content className="flex items-center gap-4 py-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-textSecondary" />
             <input
@@ -103,7 +107,7 @@ export const Campaigns = () => {
               placeholder="Search campaigns..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-background text-textPrimary focus:outline-none focus:border-primary"
+              className="w-full pl-10 pr-4 py-2.5 text-sm rounded-lg bg-white/[0.04] border border-white/10 text-white placeholder-textSecondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
             />
           </div>
         </Card.Content>
@@ -114,20 +118,20 @@ export const Campaigns = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCamps.map((camp) => (
-            <Card key={camp.id} className="hover:shadow-premium border-border/80 hover:border-primary/20 transition-all duration-300">
+            <Card key={camp.id} className="hover:border-primary/30 border-white/[0.06] transition-all duration-300">
               <Card.Header className="flex justify-between items-start">
-                <div className="p-2.5 bg-primary/5 rounded-xl border border-primary/10">
-                  <Target className="w-5 h-5 text-primary" />
+                <div className="p-2.5 bg-purple-500/10 border border-purple-500/20 rounded-xl text-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.15)]">
+                  <Target className="w-5 h-5" />
                 </div>
                 <Badge variant={camp.status === 'RUNNING' ? 'success' : camp.status === 'COMPLETED' ? 'primary' : 'neutral'}>
                   {camp.status}
                 </Badge>
               </Card.Header>
-              <Card.Content className="flex flex-col gap-3 py-4">
-                <h3 className="text-sm font-bold text-textPrimary leading-tight">{camp.name}</h3>
+              <Card.Content className="flex flex-col gap-4 p-5">
+                <h3 className="text-sm font-bold text-white leading-tight">{camp.name}</h3>
                 
-                <div className="flex items-center justify-between text-xs text-textSecondary border-t border-border pt-3">
-                  <span className="bg-slate-100 text-slate-800 font-semibold px-2 py-0.5 rounded text-[10px]">{camp.type}</span>
+                <div className="flex items-center justify-between text-xs text-textSecondary border-t border-white/[0.06] pt-3 font-medium">
+                  <span className="bg-purple-500/20 border border-purple-500/30 text-purple-300 px-2.5 py-0.5 rounded text-[9px] font-black uppercase tracking-widest">{camp.type}</span>
                   <span>{camp.startDate} &rarr; {camp.endDate}</span>
                 </div>
               </Card.Content>
@@ -138,27 +142,25 @@ export const Campaigns = () => {
 
       <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Create Campaign">
         <form onSubmit={handleCreate} className="flex flex-col gap-4">
-          <Input label="Campaign Name *" placeholder="e.g. VIP Christmas Special" value={name} onChange={(e) => setName(e.target.value)} required />
+          <Input label="Campaign Name" placeholder="e.g. VIP Christmas Special" value={name} onChange={(e) => setName(e.target.value)} required />
           
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-textSecondary">Campaign Channel *</label>
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-surface text-textPrimary focus:outline-none focus:border-primary"
-            >
-              <option value="EMAIL">Email Newsletters</option>
-              <option value="SMS">SMS Marketing</option>
-              <option value="SOCIAL">Social Media Ads</option>
-            </select>
-          </div>
+          <Select
+            label="Campaign Channel"
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            options={[
+              { value: 'EMAIL', label: 'Email Newsletters' },
+              { value: 'SMS', label: 'SMS Marketing' },
+              { value: 'SOCIAL', label: 'Social Media Ads' }
+            ]}
+          />
 
-          <Input label="Start Date *" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
-          <Input label="End Date *" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
+          <Input label="Start Date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+          <Input label="End Date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
 
-          <div className="flex justify-end gap-3 mt-4 border-t border-border pt-4">
-            <Button type="button" variant="secondary" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="primary">Launch Campaign</Button>
+          <div className="flex justify-end gap-3 mt-4 border-t border-white/[0.06] pt-4">
+            <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+            <Button type="submit">Launch Campaign</Button>
           </div>
         </form>
       </Modal>

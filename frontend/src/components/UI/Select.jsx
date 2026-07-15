@@ -12,25 +12,37 @@ export const Select = React.forwardRef(({
   return (
     <div className="w-full flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={id} className="text-xs font-semibold text-textSecondary select-none">
+        <label
+          htmlFor={id}
+          className="text-[10px] font-semibold text-textSecondary select-none uppercase tracking-widest"
+        >
           {label}
         </label>
       )}
       <select
         id={id}
         ref={ref}
-        className={`w-full px-3 py-2.5 text-sm rounded-lg border border-border bg-surface text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-150 ${
-          error ? 'border-danger focus:ring-danger/20 focus:border-danger' : ''
-        } ${className}`}
+        className={`w-full px-4 py-3 text-sm rounded-[12px] text-white
+          focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50
+          hover:border-white/20 transition-all duration-150 cursor-pointer
+          appearance-none
+          ${error ? 'border-danger/50 focus:ring-danger/30 focus:border-danger/60' : ''}
+          ${className}`}
+        style={{
+          background: 'rgba(15, 15, 23, 0.8)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          backdropFilter: 'blur(8px)',
+          WebkitAppearance: 'none',
+        }}
         {...props}
       >
         {placeholder && (
-          <option value="" disabled>
+          <option value="" disabled style={{ background: '#0F0F17', color: '#A1A1AA' }}>
             {placeholder}
           </option>
         )}
         {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
+          <option key={opt.value} value={opt.value} style={{ background: '#0F0F17', color: '#FFFFFF' }}>
             {opt.label}
           </option>
         ))}

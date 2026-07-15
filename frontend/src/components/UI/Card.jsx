@@ -3,11 +3,12 @@ import React from 'react';
 export const Card = ({
   children,
   className = '',
+  glow = false,
   ...props
 }) => {
   return (
     <div
-      className={`rounded-2xl border border-border bg-surface shadow-premium hover:shadow-premium-hover transition-all duration-300 ${className}`}
+      className={`glass-card ${glow ? 'glass-card-glow' : ''} ${className}`}
       {...props}
     >
       {children}
@@ -16,19 +17,25 @@ export const Card = ({
 };
 
 export const CardHeader = ({ children, className = '', ...props }) => (
-  <div className={`p-6 border-b border-border flex items-center justify-between ${className}`} {...props}>
+  <div
+    className={`px-6 py-5 border-b border-white/[0.06] flex items-center justify-between ${className}`}
+    {...props}
+  >
     {children}
   </div>
 );
 
 export const CardTitle = ({ children, className = '', ...props }) => (
-  <h3 className={`text-base font-semibold text-textPrimary ${className}`} {...props}>
+  <h3
+    className={`text-lg font-bold text-white leading-tight tracking-tight ${className}`}
+    {...props}
+  >
     {children}
   </h3>
 );
 
 export const CardDescription = ({ children, className = '', ...props }) => (
-  <p className={`text-xs text-textSecondary ${className}`} {...props}>
+  <p className={`text-xs text-textSecondary leading-relaxed ${className}`} {...props}>
     {children}
   </p>
 );
@@ -40,16 +47,18 @@ export const CardContent = ({ children, className = '', ...props }) => (
 );
 
 export const CardFooter = ({ children, className = '', ...props }) => (
-  <div className={`p-6 border-t border-border bg-background/50 rounded-b-2xl flex items-center justify-end gap-3 ${className}`} {...props}>
+  <div
+    className={`px-6 py-4 border-t border-white/[0.06] bg-white/[0.02] rounded-b-[20px] flex items-center justify-end gap-3 ${className}`}
+    {...props}
+  >
     {children}
   </div>
 );
 
-Card.Header = CardHeader;
-Card.Title = CardTitle;
+Card.Header      = CardHeader;
+Card.Title       = CardTitle;
 Card.Description = CardDescription;
-Card.Content = CardContent;
-Card.Footer = CardFooter;
+Card.Content     = CardContent;
+Card.Footer      = CardFooter;
 
 export default Card;
-

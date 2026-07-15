@@ -50,14 +50,17 @@ export const Leads = () => {
   );
 
   return (
-    <div className="flex flex-col gap-6 w-full">
+    <div className="flex flex-col gap-6 w-full pb-10">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-textPrimary">Customer Leads</h1>
+        <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-widest">
+          <UserCheck className="w-4 h-4 text-purple-400" /> Customer Leads
+        </div>
+        <h1 className="text-3xl font-black text-white tracking-tight mt-1">Prospect Contacts</h1>
         <p className="text-xs text-textSecondary">Manage and capture new prospect contacts from campaigns.</p>
       </div>
 
       <Card>
-        <Card.Content className="flex items-center gap-4 py-3">
+        <Card.Content className="flex items-center gap-4 py-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-textSecondary" />
             <input
@@ -65,7 +68,7 @@ export const Leads = () => {
               placeholder="Search leads by name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-background text-textPrimary focus:outline-none focus:border-primary"
+              className="w-full pl-10 pr-4 py-2.5 text-sm rounded-lg bg-white/[0.04] border border-white/10 text-white placeholder-textSecondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
             />
           </div>
         </Card.Content>

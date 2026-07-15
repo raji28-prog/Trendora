@@ -1,6 +1,7 @@
 import AuthService from '../services/auth.service.js';
 import env from '../config/env.js';
 import jwt from 'jsonwebtoken';
+import prisma from '../database/prisma.js';
 
 export class AuthController {
   static register = async (req, res, next) => {
@@ -44,11 +45,19 @@ export class AuthController {
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
+      const business = await prisma.business.findFirst({
+        where: { ownerId: user.id }
+      });
+
       res.json({
         success: true,
         message: 'Login successful',
         data: {
-          user,
+          user: {
+            ...user,
+            hasBusiness: !!business,
+            business: business ? { id: business.id, name: business.name } : null
+          },
           accessToken,
         },
       });
@@ -109,10 +118,21 @@ export class AuthController {
 
   static me = async (req, res, next) => {
     try {
+      const { passwordHash: _, ...userWithoutPassword } = req.user;
+      userWithoutPassword.name = `${req.user.firstName} ${req.user.lastName || ''}`.trim();
+      
+      const business = await prisma.business.findFirst({
+        where: { ownerId: req.user.id }
+      });
+
       res.json({
         success: true,
         data: {
-          user: req.user,
+          user: {
+            ...userWithoutPassword,
+            hasBusiness: !!business,
+            business: business ? { id: business.id, name: business.name } : null
+          },
         },
       });
     } catch (err) {

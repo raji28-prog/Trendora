@@ -1,6 +1,7 @@
 import prisma from '../database/prisma.js';
 import fs from 'fs';
 import path from 'path';
+import { uploadToCloudinary } from '../config/cloudinary.js';
 
 // Helper to save base64 image strings locally
 const saveBase64Image = (base64Str, id) => {
@@ -22,7 +23,14 @@ const saveBase64Image = (base64Str, id) => {
 
 export const getAll = async (req, res, next) => {
   try {
-    const list = await prisma.poster.findMany({ orderBy: { createdAt: 'desc' } });
+    const list = await prisma.poster.findMany({
+      where: {
+        business: {
+          ownerId: req.user.id
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
     res.json({ success: true, data: list });
   } catch (err) {
     next(err);
@@ -31,35 +39,41 @@ export const getAll = async (req, res, next) => {
 
 export const create = async (req, res, next) => {
   try {
-    const { title, imageUrl, format, businessId } = req.body;
+    const { title, imageUrl, format, businessId, campaignId } = req.body;
     let targetBizId = businessId;
     if (!targetBizId) {
-      const firstBiz = await prisma.business.findFirst();
+      const firstBiz = await prisma.business.findFirst({
+        where: { ownerId: req.user.id }
+      });
       if (firstBiz) {
         targetBizId = firstBiz.id;
       } else {
-        const dummyBiz = await prisma.business.create({
-          data: {
-            name: 'Default Store',
-            category: 'Retail',
-            address: '123 Main St',
-            phone: '555-0000',
-            images: []
-          }
-        });
-        targetBizId = dummyBiz.id;
+        return res.status(400).json({ success: false, error: { message: 'Business profile required.' } });
+      }
+    } else {
+      const biz = await prisma.business.findFirst({
+        where: { id: targetBizId, ownerId: req.user.id }
+      });
+      if (!biz) {
+        return res.status(403).json({ success: false, error: { message: 'Forbidden: You do not own this business' } });
       }
     }
 
-    const tempId = Math.random().toString(36).substring(2, 10);
-    const savedUrl = saveBase64Image(imageUrl, tempId);
+    let savedUrl = imageUrl;
+    if (imageUrl && imageUrl.startsWith('data:image')) {
+      savedUrl = await uploadToCloudinary(imageUrl);
+    } else {
+      const tempId = Math.random().toString(36).substring(2, 10);
+      savedUrl = saveBase64Image(imageUrl, tempId);
+    }
 
     const item = await prisma.poster.create({
       data: {
         title,
         imageUrl: savedUrl || '',
         format: format || 'PNG',
-        businessId: targetBizId
+        businessId: targetBizId,
+        campaignId
       }
     });
     res.status(201).json({ success: true, data: item });

@@ -8,11 +8,14 @@ import Modal from '../components/UI/Modal.jsx';
 import EmptyState from '../components/UI/EmptyState.jsx';
 import { addToast } from '../store/uiSlice.js';
 import { useDispatch } from 'react-redux';
-import { Search, Plus, Edit2, Trash2, Globe, Phone, MapPin, Building, ToggleLeft, ToggleRight, X, Image as ImageIcon } from 'lucide-react';
+import { setBusinesses as setGlobalBusinesses } from '../store/businessSlice.js';
+import { useSelectedBusiness } from '../store/useSelectedBusiness.js';
+import { Search, Plus, Edit2, Trash2, Globe, Phone, MapPin, Building, X, Image as ImageIcon, CheckCircle2 } from 'lucide-react';
 import api from '../services/api.js';
 
 export const Businesses = () => {
   const dispatch = useDispatch();
+  const { selectedBusinessId, setSelected } = useSelectedBusiness();
   const [businesses, setBusinesses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -32,45 +35,22 @@ export const Businesses = () => {
   const [images, setImages] = useState([]); // Base64 strings array
   const [status, setStatus] = useState('ACTIVE');
 
-  // Load from API
+  // Load from API and sync with global store
   const fetchBusinesses = async () => {
     setLoading(true);
     try {
       const response = await api.get('/api/businesses');
-      setBusinesses(response.data.data || []);
+      const list = response.data.data || [];
+      setBusinesses(list);
+      dispatch(setGlobalBusinesses(list));
     } catch (err) {
       if (!err.response) {
         // Backend offline: Use local storage mock database
         const local = localStorage.getItem('demo_businesses');
         if (local) {
-          setBusinesses(JSON.parse(local));
-        } else {
-          const defaultDemo = [
-            {
-              id: 'demo-1',
-              name: 'Coffee & Co.',
-              category: 'Food & Beverage',
-              address: '123 Main St, New York',
-              phone: '555-0192',
-              website: 'coffeeandco.com',
-              images: [],
-              status: 'ACTIVE',
-              createdAt: new Date().toISOString(),
-            },
-            {
-              id: 'demo-2',
-              name: 'Green & Grow Nursery',
-              category: 'Retail',
-              address: '742 Evergreen Terrace',
-              phone: '555-0199',
-              website: 'greengrow.com',
-              images: [],
-              status: 'INACTIVE',
-              createdAt: new Date().toISOString(),
-            }
-          ];
-          localStorage.setItem('demo_businesses', JSON.stringify(defaultDemo));
-          setBusinesses(defaultDemo);
+          const list = JSON.parse(local);
+          setBusinesses(list);
+          dispatch(setGlobalBusinesses(list));
         }
         dispatch(addToast({ type: 'info', message: 'Demo Mode: Running client-side database.' }));
       } else {
@@ -87,28 +67,23 @@ export const Businesses = () => {
 
   const saveLocalBusinesses = (updated) => {
     setBusinesses(updated);
+    dispatch(setGlobalBusinesses(updated));
     localStorage.setItem('demo_businesses', JSON.stringify(updated));
   };
 
-  // Image Upload handler (supports multiple file conversion to base64)
+  // Image Upload handler (stores raw files in images state)
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files || []);
-    const loadedImages = [];
-
-    files.forEach((file) => {
+    
+    const validFiles = files.filter((file) => {
       if (file.size > 2 * 1024 * 1024) {
         dispatch(addToast({ type: 'error', message: `${file.name} is too large (>2MB).` }));
-        return;
+        return false;
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        loadedImages.push(reader.result);
-        if (loadedImages.length === files.length) {
-          setImages((prev) => [...prev, ...loadedImages]);
-        }
-      };
-      reader.readAsDataURL(file);
+      return true;
     });
+
+    setImages((prev) => [...prev, ...validFiles]);
   };
 
   const removeSelectedImage = (idx) => {
@@ -133,10 +108,24 @@ export const Businesses = () => {
       return;
     }
 
-    const payload = { name, category, address, phone, website, images, status };
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('category', category);
+    formData.append('address', address);
+    formData.append('phone', phone);
+    if (website) formData.append('website', website);
+    formData.append('status', status);
+
+    images.forEach((img) => {
+      if (img instanceof File) {
+        formData.append('images', img);
+      }
+    });
 
     try {
-      const response = await api.post('/api/businesses', payload);
+      const response = await api.post('/api/businesses', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
       dispatch(addToast({ type: 'success', message: 'Business created successfully!' }));
       setIsCreateOpen(false);
       resetForm();
@@ -144,6 +133,12 @@ export const Businesses = () => {
     } catch (err) {
       if (!err.response) {
         // Backend offline mock create
+        const mockImages = images.map((img) => {
+          if (img instanceof File) {
+            return URL.createObjectURL(img);
+          }
+          return img;
+        });
         const newBiz = {
           id: `demo-${Date.now()}`,
           name,
@@ -151,7 +146,7 @@ export const Businesses = () => {
           address,
           phone,
           website,
-          images,
+          images: mockImages,
           status,
           createdAt: new Date().toISOString()
         };
@@ -186,10 +181,26 @@ export const Businesses = () => {
       return;
     }
 
-    const payload = { name, category, address, phone, website, images, status };
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('category', category);
+    formData.append('address', address);
+    formData.append('phone', phone);
+    if (website) formData.append('website', website);
+    formData.append('status', status);
+
+    images.forEach((img) => {
+      if (img instanceof File) {
+        formData.append('images', img);
+      } else if (typeof img === 'string') {
+        formData.append('existingImages', img);
+      }
+    });
 
     try {
-      await api.put(`/api/businesses/${currentBusiness.id}`, payload);
+      await api.put(`/api/businesses/${currentBusiness.id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
       dispatch(addToast({ type: 'success', message: 'Business updated successfully!' }));
       setIsEditOpen(false);
       resetForm();
@@ -197,8 +208,14 @@ export const Businesses = () => {
     } catch (err) {
       if (!err.response) {
         // Backend offline mock edit
+        const mockImages = images.map((img) => {
+          if (img instanceof File) {
+            return URL.createObjectURL(img);
+          }
+          return img;
+        });
         const updated = businesses.map((b) => 
-          b.id === currentBusiness.id ? { ...b, name, category, address, phone, website, images, status } : b
+          b.id === currentBusiness.id ? { ...b, name, category, address, phone, website, images: mockImages, status } : b
         );
         saveLocalBusinesses(updated);
         dispatch(addToast({ type: 'success', message: 'Demo Mode: Business updated successfully!' }));
@@ -245,10 +262,10 @@ export const Businesses = () => {
   const categories = ['All', ...new Set(businesses.map((b) => b.category))];
 
   return (
-    <div className="flex flex-col gap-6 w-full">
+    <div className="flex flex-col gap-6 w-full pb-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-textPrimary">Businesses</h1>
+          <h1 className="text-3xl font-black text-white tracking-tight">Businesses</h1>
           <p className="text-xs text-textSecondary">Add and manage local business profiles.</p>
         </div>
         <Button variant="primary" icon={Plus} onClick={() => { resetForm(); setIsCreateOpen(true); }}>
@@ -258,7 +275,7 @@ export const Businesses = () => {
 
       {/* Filter and Search Bar */}
       <Card>
-        <Card.Content className="flex flex-col md:flex-row md:items-center gap-4 py-3">
+        <Card.Content className="flex flex-col md:flex-row md:items-center gap-4 py-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-textSecondary" />
             <input
@@ -266,17 +283,18 @@ export const Businesses = () => {
               placeholder="Search by name, category or address..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-background text-textPrimary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
+              className="w-full pl-10 pr-4 py-2.5 text-sm rounded-lg bg-white/[0.04] border border-white/10 text-white placeholder-textSecondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
             />
           </div>
-          <div className="w-full md:w-48">
+          <div className="w-full md:w-48 relative">
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-surface text-textPrimary focus:outline-none focus:border-primary"
+              className="w-full px-4 py-2.5 text-sm rounded-lg bg-white/[0.04] border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all cursor-pointer"
+              style={{ colorScheme: 'dark' }}
             >
               {categories.map((c, i) => (
-                <option key={i} value={c}>{c}</option>
+                <option key={i} value={c} style={{ background: '#0F0F17', color: '#FFF' }}>{c}</option>
               ))}
             </select>
           </div>
@@ -288,11 +306,11 @@ export const Businesses = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((n) => (
             <Card key={n} className="animate-pulse">
-              <div className="h-40 bg-slate-100 rounded-t-xl" />
+              <div className="h-40 bg-white/[0.04] rounded-t-xl" />
               <Card.Content className="flex flex-col gap-3 py-4">
-                <div className="h-4 w-1/2 bg-slate-200 rounded" />
-                <div className="h-3 w-3/4 bg-slate-100 rounded" />
-                <div className="h-3 w-1/4 bg-slate-100 rounded" />
+                <div className="h-4 w-1/2 bg-white/[0.06] rounded" />
+                <div className="h-3 w-3/4 bg-white/[0.04] rounded" />
+                <div className="h-3 w-1/4 bg-white/[0.04] rounded" />
               </Card.Content>
             </Card>
           ))}
@@ -307,10 +325,10 @@ export const Businesses = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredBusinesses.map((biz) => (
-            <Card key={biz.id} className="group overflow-hidden flex flex-col justify-between hover:shadow-premium border-border/80 hover:border-primary/20 transition-all duration-300">
+            <Card key={biz.id} className="group overflow-hidden flex flex-col justify-between border-white/[0.06] hover:border-primary/30 transition-all duration-300">
               <div>
                 {/* Images display */}
-                <div className="h-44 w-full bg-slate-100 relative overflow-hidden flex items-center justify-center border-b border-border">
+                <div className="h-44 w-full bg-white/[0.02] relative overflow-hidden flex items-center justify-center border-b border-white/[0.06]">
                   {biz.images && biz.images.length > 0 ? (
                     <img
                       src={biz.images[0]}
@@ -318,9 +336,9 @@ export const Businesses = () => {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (
-                    <div className="flex flex-col items-center gap-1 text-slate-400">
+                    <div className="flex flex-col items-center gap-1.5 text-textSecondary/40">
                       <Building className="w-10 h-10" />
-                      <span className="text-[10px] uppercase font-bold tracking-wider">No Image</span>
+                      <span className="text-[9px] uppercase font-bold tracking-widest">No Image</span>
                     </div>
                   )}
                   <div className="absolute top-3 right-3">
@@ -332,22 +350,22 @@ export const Businesses = () => {
 
                 <Card.Content className="py-4 flex flex-col gap-3">
                   <div>
-                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider">{biz.category}</span>
-                    <h3 className="text-base font-bold text-textPrimary leading-tight mt-0.5">{biz.name}</h3>
+                    <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">{biz.category}</span>
+                    <h3 className="text-base font-bold text-white leading-tight mt-0.5">{biz.name}</h3>
                   </div>
 
                   <div className="flex flex-col gap-1.5 text-xs text-textSecondary">
                     <div className="flex items-center gap-2">
-                      <MapPin className="w-3.5 h-3.5 shrink-0" />
+                      <MapPin className="w-3.5 h-3.5 shrink-0 text-textSecondary/70" />
                       <span className="truncate">{biz.address}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Phone className="w-3.5 h-3.5 shrink-0" />
+                      <Phone className="w-3.5 h-3.5 shrink-0 text-textSecondary/70" />
                       <span>{biz.phone}</span>
                     </div>
                     {biz.website && (
                       <div className="flex items-center gap-2">
-                        <Globe className="w-3.5 h-3.5 shrink-0 text-slate-400 group-hover:text-primary transition-colors" />
+                        <Globe className="w-3.5 h-3.5 shrink-0 text-textSecondary/50 group-hover:text-primary transition-colors" />
                         <span className="truncate">{biz.website}</span>
                       </div>
                     )}
@@ -356,21 +374,35 @@ export const Businesses = () => {
               </div>
 
               {/* Action Footer */}
-              <div className="px-5 py-3.5 bg-sectionBackground/60 border-t border-border/80 flex items-center justify-end gap-2.5">
+              <div className="px-5 py-3.5 bg-white/[0.02] border-t border-white/[0.06] flex items-center justify-between gap-2.5 rounded-b-[20px]">
                 <button
-                  onClick={() => openEditModal(biz)}
-                  className="p-1.5 rounded-lg border border-border bg-white text-textSecondary hover:text-primary hover:border-primary/20 transition-all"
-                  title="Edit Business"
+                  onClick={() => setSelected(biz.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                    selectedBusinessId === biz.id
+                      ? 'bg-primary/15 border-primary/40 text-purple-300'
+                      : 'bg-white/[0.04] border-white/10 text-textSecondary hover:border-primary/30 hover:text-white'
+                  }`}
+                  title="Select this business"
                 >
-                  <Edit2 className="w-3.5 h-3.5" />
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  {selectedBusinessId === biz.id ? 'Selected' : 'Select'}
                 </button>
-                <button
-                  onClick={() => handleDelete(biz.id)}
-                  className="p-1.5 rounded-lg border border-border bg-white text-textSecondary hover:text-red-600 hover:border-red-100 transition-all"
-                  title="Delete Business"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => openEditModal(biz)}
+                    className="p-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-textSecondary hover:text-white hover:border-primary/30 transition-all"
+                    title="Edit Business"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(biz.id)}
+                    className="p-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-textSecondary hover:text-red-400 hover:border-red-500/30 transition-all"
+                    title="Delete Business"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             </Card>
           ))}
@@ -399,30 +431,35 @@ export const Businesses = () => {
             {/* Image Preview Grid */}
             {images.length > 0 && (
               <div className="grid grid-cols-4 gap-3 mt-2">
-                {images.map((img, idx) => (
-                  <div key={idx} className="relative aspect-square rounded-lg border overflow-hidden bg-slate-50">
-                    <img src={img} alt="preview" className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => removeSelectedImage(idx)}
-                      className="absolute top-1 right-1 p-0.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-all"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
+                {images.map((img, idx) => {
+                  const previewUrl = typeof img === 'string' ? img : URL.createObjectURL(img);
+                  return (
+                    <div key={idx} className="relative aspect-square rounded-lg border overflow-hidden bg-slate-50">
+                      <img src={previewUrl} alt="preview" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeSelectedImage(idx)}
+                        className="absolute top-1 right-1 p-0.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-all"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
 
-          <div className="flex items-center justify-between border-t border-border pt-4 mt-2">
-            <span className="text-xs text-textSecondary">Status</span>
+          <div className="flex items-center justify-between border-t border-white/[0.06] pt-4 mt-2">
+            <span className="text-xs text-textSecondary font-semibold">Status</span>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setStatus('ACTIVE')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
-                  status === 'ACTIVE' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-white text-textSecondary border-border'
+                className={`px-3.5 py-1.5 text-xs rounded-lg border transition-all duration-200 ${
+                  status === 'ACTIVE' 
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold shadow-[0_0_12px_rgba(16,185,129,0.15)]' 
+                    : 'bg-white/[0.02] border-white/10 text-textSecondary hover:border-white/20 hover:text-white'
                 }`}
               >
                 Active
@@ -430,8 +467,10 @@ export const Businesses = () => {
               <button
                 type="button"
                 onClick={() => setStatus('INACTIVE')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
-                  status === 'INACTIVE' ? 'bg-slate-100 border-slate-300 text-slate-700' : 'bg-white text-textSecondary border-border'
+                className={`px-3.5 py-1.5 text-xs rounded-lg border transition-all duration-200 ${
+                  status === 'INACTIVE' 
+                    ? 'bg-white/[0.06] border-white/20 text-white font-bold' 
+                    : 'bg-white/[0.02] border-white/10 text-textSecondary hover:border-white/20 hover:text-white'
                 }`}
               >
                 Inactive
@@ -439,9 +478,9 @@ export const Businesses = () => {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 mt-4 border-t border-border pt-4">
-            <Button type="button" variant="secondary" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="primary">Create Profile</Button>
+          <div className="flex justify-end gap-3 mt-4 border-t border-white/[0.06] pt-4">
+            <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+            <Button type="submit">Create Profile</Button>
           </div>
         </form>
       </Modal>
@@ -467,30 +506,35 @@ export const Businesses = () => {
             {/* Image Preview Grid */}
             {images.length > 0 && (
               <div className="grid grid-cols-4 gap-3 mt-2">
-                {images.map((img, idx) => (
-                  <div key={idx} className="relative aspect-square rounded-lg border overflow-hidden bg-slate-50">
-                    <img src={img} alt="preview" className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => removeSelectedImage(idx)}
-                      className="absolute top-1 right-1 p-0.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-all"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
+                {images.map((img, idx) => {
+                  const previewUrl = typeof img === 'string' ? img : URL.createObjectURL(img);
+                  return (
+                    <div key={idx} className="relative aspect-square rounded-lg border overflow-hidden bg-slate-50">
+                      <img src={previewUrl} alt="preview" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeSelectedImage(idx)}
+                        className="absolute top-1 right-1 p-0.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-all"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
 
-          <div className="flex items-center justify-between border-t border-border pt-4 mt-2">
-            <span className="text-xs text-textSecondary">Status</span>
+          <div className="flex items-center justify-between border-t border-white/[0.06] pt-4 mt-2">
+            <span className="text-xs text-textSecondary font-semibold">Status</span>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setStatus('ACTIVE')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
-                  status === 'ACTIVE' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-white text-textSecondary border-border'
+                className={`px-3.5 py-1.5 text-xs rounded-lg border transition-all duration-200 ${
+                  status === 'ACTIVE' 
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold shadow-[0_0_12px_rgba(16,185,129,0.15)]' 
+                    : 'bg-white/[0.02] border-white/10 text-textSecondary hover:border-white/20 hover:text-white'
                 }`}
               >
                 Active
@@ -498,8 +542,10 @@ export const Businesses = () => {
               <button
                 type="button"
                 onClick={() => setStatus('INACTIVE')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
-                  status === 'INACTIVE' ? 'bg-slate-100 border-slate-300 text-slate-700' : 'bg-white text-textSecondary border-border'
+                className={`px-3.5 py-1.5 text-xs rounded-lg border transition-all duration-200 ${
+                  status === 'INACTIVE' 
+                    ? 'bg-white/[0.06] border-white/20 text-white font-bold' 
+                    : 'bg-white/[0.02] border-white/10 text-textSecondary hover:border-white/20 hover:text-white'
                 }`}
               >
                 Inactive
@@ -507,9 +553,9 @@ export const Businesses = () => {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 mt-4 border-t border-border pt-4">
-            <Button type="button" variant="secondary" onClick={() => setIsEditOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="primary">Save Changes</Button>
+          <div className="flex justify-end gap-3 mt-4 border-t border-white/[0.06] pt-4">
+            <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
+            <Button type="submit">Save Changes</Button>
           </div>
         </form>
       </Modal>
